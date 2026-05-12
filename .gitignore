@@ -1,0 +1,13 @@
+# Ignore JetBrains Rider/IntelliJ settings
+.idea/
+*.sln.DotSettings.user
+
+# Ignore build output
+**/bin/
+**/obj/
+
+# Ignore standard Visual Studio / .NET files
+.vs/
+*.user
+*.suo
+appsettings.Local.json
