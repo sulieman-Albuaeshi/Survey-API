@@ -1,6 +1,6 @@
 ﻿namespace Entities;
 
-public enum SurveyStatus : byte
+public enum SurveyStatus : Byte
 {
     Draft = 0,
     Published = 1,

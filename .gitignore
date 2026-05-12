@@ -10,4 +10,5 @@
 .vs/
 *.user
 *.suo
-appsettings.Local.json
+
+DbHelper.local.cs
