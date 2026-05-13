@@ -6,11 +6,14 @@ public enum SurveyStatus : Byte
     Published = 1,
     Archived = 2
 }
+public enum EnMode { AddNew = 0, Update = 1 };
 
 public class Survey
 {   
+    public EnMode Mode = EnMode.AddNew;
+    
     public int Id { get; set; }
-    public required string  Title { get; set; }
+    public string  Title { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }
