@@ -1,5 +1,5 @@
 using Entities;
-namespace SurveyBusinessLayer;
+namespace SurveyBusinessLayer.Interface;
 
 public interface ISurveyService
 {

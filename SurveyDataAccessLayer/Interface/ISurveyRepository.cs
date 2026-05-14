@@ -1,4 +1,4 @@
-namespace SurveyDataAccessLayer;
+namespace SurveyDataAccessLayer.Interface;
 using Entities;
 
 public interface ISurveyRepository

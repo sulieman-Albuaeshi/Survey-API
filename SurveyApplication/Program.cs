@@ -1,5 +1,7 @@
 using SurveyBusinessLayer;
+using SurveyBusinessLayer.Interface;
 using SurveyDataAccessLayer;
+using SurveyDataAccessLayer.Interface;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

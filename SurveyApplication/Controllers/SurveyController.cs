@@ -1,6 +1,6 @@
 using DTOs;
 using Microsoft.AspNetCore.Mvc;
-using SurveyBusinessLayer;
+using SurveyBusinessLayer.Interface;
 using Entities;
 using SurveyApplication.Mapper;
 

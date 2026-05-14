@@ -1,6 +1,8 @@
-namespace SurveyBusinessLayer;
-using SurveyDataAccessLayer;
 using Entities;
+using SurveyBusinessLayer.Interface;
+using SurveyDataAccessLayer.Interface;
+
+namespace SurveyBusinessLayer;
 
 // TODO the survey need to populated with question 
 

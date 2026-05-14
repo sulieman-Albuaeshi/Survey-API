@@ -1,6 +1,8 @@
+namespace SurveyDataAccessLayer;
+
 using Entities;
 using Microsoft.Data.SqlClient;
-namespace SurveyDataAccessLayer;
+using SurveyDataAccessLayer.Interface;
 
 public class SurveyRepository : ISurveyRepository
 {
