@@ -2,52 +2,80 @@ namespace SurveyBusinessLayer;
 using SurveyDataAccessLayer;
 using Entities;
 
+// TODO the survey need to populated with question 
 
-public class SurveyBL
+public class SurveyService : ISurveyService
 {
-    private Survey survey = new Survey();
+    private readonly ISurveyRepository _surveyRepository;
     
-    public SurveyBL(int surveyId, string title, string? description, bool isAnonymous, DateTime createdDate, bool isActive = true,
-        int userId = 0, SurveyStatus status = SurveyStatus.Draft, int questionCount = 0)
+    public SurveyService(ISurveyRepository surveyRepository)
     {
-        survey.Id = surveyId;
-        survey.Title = title;
-        survey.Description = description;
-        survey.IsAnonymous = isAnonymous;
-        survey.CreatedDate = createdDate;
-        survey.IsActive = isActive;
-        survey.UserId = userId;
-        survey.Status = status;
-        survey.QuestionCount = questionCount;
-        survey.Mode = EnMode.AddNew;
+        _surveyRepository = surveyRepository;
+    }
+    
+    public async Task<List<Survey>> GetAllSurveysAsync()
+    {
+        var SurveyList = await _surveyRepository.GetAllSurveysAsync();
+        if (SurveyList == null || !SurveyList.Any())
+            throw new KeyNotFoundException("Survey not found.");
+        
+        return SurveyList;
+    }
+    
+    public async Task<Survey?> GetSurveyByIdAsync(int surveyId)
+    {
+        var survey = await _surveyRepository.GetSurveyByIdAsync(surveyId);
+        if (survey == null)
+            throw new KeyNotFoundException("Survey not found.");
+        
+        return survey;
+    }
+    
+    public async Task<int> CreateSurveyAsync(Survey survey)
+    {
+        ValidateSurveyArgument(survey);
+        survey.Status = SurveyStatus.Draft;
+        survey.CreatedDate = DateTime.UtcNow;
+        survey.QuestionCount = 0;
+        return await _surveyRepository.CreateSurveyAsync(survey);
+    }
+    
+    public async Task<int> UpdateSurveyAsync(Survey survey)
+    {
+        ValidateSurveyArgument(survey);
+        
+        if(survey.Status == SurveyStatus.Published)
+            throw new InvalidOperationException("Cannot update a published survey.");
+        
+        if(survey.Id < 0)
+            throw new ArgumentException("Invalid survey ID.");
+        
+        var exsitingSurvey = await GetSurveyByIdAsync(survey.Id);
+        
+        if(exsitingSurvey == null)
+            throw new KeyNotFoundException("Survey not found.");
+        
+        // TODO if the user authorized
+        if(survey.UserId !=  exsitingSurvey?.UserId)
+            throw new ArgumentException("User IDs do not match.");
+        //throw new UnauthorizedAccessException("You are not authorized to update this survey.");
+        
+        return await _surveyRepository.UpdateSurveyAsync(survey);
+    }
+    
+    public async Task<bool> DeleteSurveyAsync(int surveyId)
+    {
+        if (surveyId <= 0)
+            throw new ArgumentException("Invalid survey id.");
+
+        return await _surveyRepository.DeleteSurveyAsync(surveyId) == 1;
     }
 
-    private async Task<int> _AddNewSurvey()
+    private static void ValidateSurveyArgument(Survey survey)
     {
-        survey.Id = await SurveyDAL.AddNewSurveyAsync(survey);
-        return survey.Id;
-    }
-    
-    private async Task<int> _updateSurvey()
-    {
-        return 1;
-    }
-
-    public async Task<int> Save()
-    {
-        switch (survey.Mode)
-        {
-            case EnMode.AddNew:
-                return await _AddNewSurvey();
-            case EnMode.Update:
-                return await _updateSurvey();
-            default:
-                return await _updateSurvey();
-        }
-    }
-    
-    public static async Task<List<Survey>> GetAllSurveysAsync()
-    {
-        return await SurveyDAL.GetAllSurveysAsync();
+        if (survey.Title == null || survey.Title.Trim() == "")
+            throw new ArgumentException("Survey title is required.");
+        if (survey.UserId == null || survey.UserId.Trim() == "")
+            throw new ArgumentException("User ID is required.");
     }
 }
