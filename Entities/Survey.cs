@@ -18,7 +18,7 @@ public class Survey
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }
     public bool IsAnonymous { get; set; }
-    public int UserId { get; set; }
+    public string UserId { get; set; }
     public SurveyStatus Status { get; set; }
     public int QuestionCount { get; set; }
 }
