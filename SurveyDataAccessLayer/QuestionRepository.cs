@@ -1,3 +1,5 @@
+using System.Data;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 
 namespace SurveyDataAccessLayer;
@@ -28,26 +30,94 @@ public class QuestionRepository : IQuestionRepository
                     OrderIndex = reader.GetInt32(reader.GetOrdinal("OrderIndex")),
                     SettingsJSON = reader.IsDBNull(reader.GetOrdinal("SettingsJSON"))
                         ? null
-                        : reader.GetString(reader.GetOrdinal("SettingsJSON")),
-                    QuestionType = (QuestionType)reader[reader.GetOrdinal("QuestionType")]
+                        : JsonSerializer.Deserialize<JsonElement>(reader.GetString(reader.GetOrdinal("SettingsJSON"))),
+                    QuestionType = (QuestionType)reader.GetInt32(reader.GetOrdinal("QuestionType"))
                 });
             }
             return list;
         }
         catch (Exception ex)
         {
-            throw new Exception("Error fetching questions for survey id " + surveyId, ex);
+          throw new Exception("Error fetching questions for survey id " + surveyId + ": " + ex.Message, ex);
         }
     }
     
     public async Task<Question?> GetQuestionByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
+        using var cmd = new SqlCommand("SELECT * FROM Questions where Id = @id", conn);
+        cmd.Parameters.AddWithValue("@id", id);
+        try
+        { 
+            await conn.OpenAsync();
+            await using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+            if (reader.Read())
+            {
+                return new Question
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                    SurveyId = reader.GetInt32(reader.GetOrdinal("SurveyId")),
+                    QuestionText = reader.GetString(reader.GetOrdinal("QuestionText")),
+                    IsRequired = reader.GetBoolean(reader.GetOrdinal("IsRequired")),
+                    OrderIndex = reader.GetInt32(reader.GetOrdinal("OrderIndex")),
+                    SettingsJSON = reader.IsDBNull(reader.GetOrdinal("SettingsJSON"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("SettingsJSON")),
+                    QuestionType = (QuestionType)reader[reader.GetOrdinal("QuestionType")]
+                };
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error fetching question for id " + id, ex);
+        }
     }
 
-    public async Task<int> CreateQuestionAsync(Question que)
+    public async Task<int> CreateQuestionAsync(int surveyid, Question que, IEnumerable<Choice> choices)
     {
-        throw new NotImplementedException();
+        using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
+        await conn.OpenAsync();
+        var tx = conn.BeginTransaction();
+        try{
+            using var cmd = new SqlCommand(
+                @"INSERT INTO Questions (SurveyId, QuestionText, IsRequired, OrderIndex, SettingsJSON, QuestionType) 
+             VALUES (@SurveyId, @QuestionText, @IsRequired, @OrderIndex, @SettingsJSON, @QuestionType); 
+             SELECT SCOPE_IDENTITY();", conn, tx);
+
+            cmd.Parameters.AddWithValue("@SurveyId", surveyid);
+            cmd.Parameters.AddWithValue("@QuestionText", que.QuestionText);
+            cmd.Parameters.AddWithValue("@IsRequired", que.IsRequired);
+            cmd.Parameters.AddWithValue("@OrderIndex", que.OrderIndex);
+            cmd.Parameters.AddWithValue("@SettingsJSON", que.SettingsJSON);
+            cmd.Parameters.AddWithValue("@QuestionType", que.QuestionType);
+            
+            var newQuestionId =Convert.ToInt32(await cmd.ExecuteScalarAsync());;
+            
+            if(choices != null && choices.Any())
+            {
+                foreach(var choice in choices)
+                {
+                    using var choiceCmd = new SqlCommand(
+                        @"INSERT INTO Choices (QuestionId, ChoiceText, OrderIndex) 
+                          VALUES (@QuestionId, @ChoiceText, @OrderIndex);", conn, tx);
+                    choiceCmd.Parameters.Add("@QuestionId", SqlDbType.Int).Value = choice.QuestionId;
+                    choiceCmd.Parameters.Add("@ChoiceText", SqlDbType.Text).Value = choice.ChoiceText;      
+                    choiceCmd.Parameters.Add("@OrderIndex", SqlDbType.Int).Value = choice.OrderIndex;
+                    choiceCmd.Parameters.Add("@QuestionId", SqlDbType.Int).Value = newQuestionId; // set the question id for the choice
+                    
+                    await choiceCmd.ExecuteNonQueryAsync();
+                }
+            }
+            
+            tx.Commit();
+            return newQuestionId;
+        }
+        catch(Exception e)
+        {
+            tx.Rollback();
+            throw new Exception("Error Creating  Question " , e);
+        }
     }
 
     public async Task<int> UpdateQuestionAsync(Question que)
