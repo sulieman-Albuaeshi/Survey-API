@@ -1,14 +1,14 @@
 namespace Entities;
 
 
-public enum QuestionType : byte
+public enum QuestionType : int
 {
-    Text = 0,
-    Radio = 1,
-    Checkbox = 2,
-    Rating = 3,
-    Rank = 4,
-    Matrix = 5
+    Text = 3,
+    Radio = 4,
+    Checkbox = 5,
+    Rating = 6,
+    Rank = 7,
+    Matrix = 8
 }
 
 public class Question
@@ -21,6 +21,6 @@ public class Question
     public int OrderIndex { get; set; }
 
     // Store configuration like {"min":1, "max":5} here
-    public string SettingsJSON { get; set; } 
+    public object? SettingsJSON { get; set; } 
     
 }

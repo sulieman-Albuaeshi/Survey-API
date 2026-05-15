@@ -24,24 +24,6 @@ public class SurveyDto
     public string UserId { get; set; }
 }
 
-public class ChoiceDto
-{
-    public int Id { get; set; }
-    public string ChoiceText { get; set; }
-    public int OrderIndex { get; set; }
-}
-
-public class QuestionDto
-{
-    public int Id { get; set; }
-    public  string QuestionText { get; set; }
-    public QuestionType QuestionType { get; set; }
-    public bool IsRequired { get; set; }
-    public int OrderIndex { get; set; }
-    public string? SettingsJSON { get; set; }
-    public List<ChoiceDto> Choices { get; set; } = new();
-}
-
 public class SurveyDetailsDto
 {
     public int Id { get; set; }
