@@ -28,12 +28,12 @@ public class QuestionService : IQuestionService
         return questions;
     }
 
-    public async Task<Question?> GetQuestionByIdAsync(int id)
+    public async Task<Question?> GetQuestionByIdAsync(int id, int surveyId)
     {
-        if(id < 1)
-            throw new ArgumentException("Invalid question id");
+        if (id < 1 || surveyId < 1)
+            throw new ArgumentException("Invalid question id or survey id");
         
-        var question = await _questionRepository.GetQuestionByIdAsync(id);
+        var question = await _questionRepository.GetQuestionByIdAsync(id, surveyId);
         if(question == null)
             throw new KeyNotFoundException("No question found");
         
@@ -47,9 +47,14 @@ public class QuestionService : IQuestionService
         
         if(que == null || string.IsNullOrEmpty(que.QuestionText) )
             throw new ArgumentException("No question found");
-        
-        if(choice == null || !choice.Any())
-            throw new ArgumentException("No choice found");
+        // TODO : HOW to habdel Matrix
+        if(que.QuestionType == QuestionType.Radio || que.QuestionType == QuestionType.Checkbox || que.QuestionType == QuestionType.Matrix)
+        {
+            if(choice == null || !choice.Any())
+                throw new ArgumentException("No choice found");
+        }
+        if(choice == null || choice.Any() && que.QuestionType == QuestionType.Rating || que.QuestionType == QuestionType.Text)
+            throw new ArgumentException("this type of question does not support choices");
         
         if(choice.Any(ch => string.IsNullOrWhiteSpace(ch.ChoiceText)))
             throw new ArgumentException("No choice found");

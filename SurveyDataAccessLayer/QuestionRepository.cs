@@ -42,11 +42,12 @@ public class QuestionRepository : IQuestionRepository
         }
     }
     
-    public async Task<Question?> GetQuestionByIdAsync(int id)
+    public async Task<Question?> GetQuestionByIdAsync(int id, int surveyid)
     {
         using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
-        using var cmd = new SqlCommand("SELECT * FROM Questions where Id = @id", conn);
+        using var cmd = new SqlCommand("SELECT * FROM Questions where Id = @id and SurveyId = @surveyId", conn);
         cmd.Parameters.AddWithValue("@id", id);
+        cmd.Parameters.AddWithValue("@surveyId", surveyid);
         try
         { 
             await conn.OpenAsync();
@@ -62,7 +63,7 @@ public class QuestionRepository : IQuestionRepository
                     OrderIndex = reader.GetInt32(reader.GetOrdinal("OrderIndex")),
                     SettingsJSON = reader.IsDBNull(reader.GetOrdinal("SettingsJSON"))
                         ? null
-                        : reader.GetString(reader.GetOrdinal("SettingsJSON")),
+                        : JsonSerializer.Deserialize<JsonElement>(reader.GetString(reader.GetOrdinal("SettingsJSON"))),
                     QuestionType = (QuestionType)reader[reader.GetOrdinal("QuestionType")]
                 };
             }
@@ -89,7 +90,7 @@ public class QuestionRepository : IQuestionRepository
             cmd.Parameters.AddWithValue("@QuestionText", que.QuestionText);
             cmd.Parameters.AddWithValue("@IsRequired", que.IsRequired);
             cmd.Parameters.AddWithValue("@OrderIndex", que.OrderIndex);
-            cmd.Parameters.AddWithValue("@SettingsJSON", que.SettingsJSON);
+            cmd.Parameters.AddWithValue("@SettingsJSON", que.SettingsJSON == null? DBNull.Value : JsonSerializer.Serialize(que.SettingsJSON));
             cmd.Parameters.AddWithValue("@QuestionType", que.QuestionType);
             
             var newQuestionId =Convert.ToInt32(await cmd.ExecuteScalarAsync());;
@@ -101,7 +102,6 @@ public class QuestionRepository : IQuestionRepository
                     using var choiceCmd = new SqlCommand(
                         @"INSERT INTO Choices (QuestionId, ChoiceText, OrderIndex) 
                           VALUES (@QuestionId, @ChoiceText, @OrderIndex);", conn, tx);
-                    choiceCmd.Parameters.Add("@QuestionId", SqlDbType.Int).Value = choice.QuestionId;
                     choiceCmd.Parameters.Add("@ChoiceText", SqlDbType.Text).Value = choice.ChoiceText;      
                     choiceCmd.Parameters.Add("@OrderIndex", SqlDbType.Int).Value = choice.OrderIndex;
                     choiceCmd.Parameters.Add("@QuestionId", SqlDbType.Int).Value = newQuestionId; // set the question id for the choice
