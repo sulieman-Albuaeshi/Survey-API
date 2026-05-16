@@ -14,7 +14,7 @@ public class QuestionMapper
             IsRequired = dto.IsRequired,
             OrderIndex = dto.OrderIndex,
             SettingsJSON = dto.SettingsJSON,
-            QuestionType = dto.QuestionType
+            QuestionType = Enum.Parse<QuestionType>(dto.QuestionType.ToString())
         };
     }
     
@@ -27,7 +27,7 @@ public class QuestionMapper
             IsRequired = dto.IsRequired,
             OrderIndex = dto.OrderIndex,
             SettingsJSON = dto.SettingsJSON,
-            QuestionType = dto.QuestionType
+            QuestionType = Enum.Parse<QuestionType>(dto.QuestionType.ToString()),
         };
     }
     
@@ -40,7 +40,7 @@ public class QuestionMapper
             IsRequired = question.IsRequired,
             OrderIndex = question.OrderIndex,
             SettingsJSON = question.SettingsJSON,
-            QuestionType = question.QuestionType,
+            QuestionType = Enum.Parse<QuestionType>(question.QuestionType.ToString()),
             // TODO : Choices = question.Choices.Select(c => ChoiceMapper.ToChoiceDto(c)).ToList()
         };
     }

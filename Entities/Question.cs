@@ -1,6 +1,7 @@
+using System.Text.Json.Serialization;
+
 namespace Entities;
-
-
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum QuestionType : int
 {
     Text = 3,
