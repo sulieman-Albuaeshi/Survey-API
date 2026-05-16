@@ -41,30 +41,24 @@ public class QuestionService : IQuestionService
     }
 
     public async Task<int> CreateQuestionAsync(int surveyid, Question que,  IEnumerable<Choice> choice)
-    {   
-        if(surveyid < 1)
-            throw new ArgumentException("Invalid surveyid");
+    {
+        ValidateSurveyId(surveyid);
+        ValidateQuestion(que);
         
-        if(que == null || string.IsNullOrEmpty(que.QuestionText) )
-            throw new ArgumentException("No question found");
-        // TODO : HOW to habdel Matrix
+        // TODO : HOW to habdel Matrix`
         if(que.QuestionType == QuestionType.Radio || que.QuestionType == QuestionType.Checkbox || que.QuestionType == QuestionType.Matrix)
         {
             if(choice == null || !choice.Any())
                 throw new ArgumentException("No choice found");
         }
-        if(choice == null || choice.Any() && que.QuestionType == QuestionType.Rating || que.QuestionType == QuestionType.Text)
+        if(choice != null && choice.Any() && (que.QuestionType == QuestionType.Rating || que.QuestionType == QuestionType.Text))
             throw new ArgumentException("this type of question does not support choices");
         
-        if(choice.Any(ch => string.IsNullOrWhiteSpace(ch.ChoiceText)))
+        if(choice != null && choice.Any(ch => string.IsNullOrWhiteSpace(ch.ChoiceText)))
             throw new ArgumentException("No choice found");
-        
-        var survey = await _surveyRepository.GetSurveyByIdAsync(surveyid);
-        if (survey == null)
-            throw new KeyNotFoundException("Survey not found.");
 
-        if (survey.Status == SurveyStatus.Published)
-            throw new InvalidOperationException("Cannot add questions to a published survey.");
+        var survey = await ValidateSurveyExists(surveyid);
+        ValidateSurveyNotPublished(survey);
 
         que.SurveyId = surveyid;
 
@@ -80,5 +74,30 @@ public class QuestionService : IQuestionService
     public async Task<bool> DeleteQuestionAsync(int id)
     {
         throw new NotImplementedException();
+    }
+    
+    private void ValidateSurveyId(int surveyId)
+    {
+        if (surveyId < 1)
+            throw new ArgumentException("Invalid survey id");
+    }
+
+    private void ValidateQuestion(Question question)
+    {
+        if (question == null || string.IsNullOrEmpty(question.QuestionText))
+            throw new ArgumentException("No question found");
+    }
+    private async Task<Survey> ValidateSurveyExists(int surveyId)
+    {
+        var survey = await _surveyRepository.GetSurveyByIdAsync(surveyId);
+        if (survey == null)
+            throw new KeyNotFoundException("Survey not found.");
+        return survey;
+    }
+
+    private void ValidateSurveyNotPublished(Survey survey)
+    {
+        if (survey.Status == SurveyStatus.Published)
+            throw new InvalidOperationException("Cannot modify questions in a published survey.");
     }
 }
