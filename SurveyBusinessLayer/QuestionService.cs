@@ -68,7 +68,17 @@ public class QuestionService : IQuestionService
 
     public async Task<int> UpdateQuestionAsync(Question que)
     {
-        throw new NotImplementedException();
+        ValidateSurveyId(que.SurveyId);
+        ValidateQuestion(que);
+        
+        var existingQuestion = await _questionRepository.GetQuestionByIdAsync(que.Id, que.SurveyId);
+        if(existingQuestion == null)
+            throw new KeyNotFoundException("No question found");
+        
+        var survey = await ValidateSurveyExists(que.SurveyId);
+        ValidateSurveyNotPublished(survey);
+        
+        return await _questionRepository.UpdateQuestionAsync(que);
     }
 
     public async Task<bool> DeleteQuestionAsync(int id)

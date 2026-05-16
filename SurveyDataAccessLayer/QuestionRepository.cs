@@ -19,7 +19,7 @@ public class QuestionRepository : IQuestionRepository
             await conn.OpenAsync();
             await using SqlDataReader reader = await cmd.ExecuteReaderAsync();
             var list = new List<Question>();
-            while (reader.Read())
+            while (await reader.ReadAsync())
             {
                 list.Add(new Question
                 {
@@ -52,7 +52,7 @@ public class QuestionRepository : IQuestionRepository
         { 
             await conn.OpenAsync();
             await using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-            if (reader.Read())
+            if (await reader.ReadAsync())
             {
                 return new Question
                 {
@@ -64,7 +64,7 @@ public class QuestionRepository : IQuestionRepository
                     SettingsJSON = reader.IsDBNull(reader.GetOrdinal("SettingsJSON"))
                         ? null
                         : JsonSerializer.Deserialize<JsonElement>(reader.GetString(reader.GetOrdinal("SettingsJSON"))),
-                    QuestionType = (QuestionType)reader[reader.GetOrdinal("QuestionType")]
+                    QuestionType = (QuestionType)reader.GetInt32(reader.GetOrdinal("QuestionType"))
                 };
             }
             return null;
@@ -79,7 +79,7 @@ public class QuestionRepository : IQuestionRepository
     {
         using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
         await conn.OpenAsync();
-        var tx = conn.BeginTransaction();
+        var tx = (SqlTransaction)await conn.BeginTransactionAsync();
         try{
             using var cmd = new SqlCommand(
                 @"INSERT INTO Questions (SurveyId, QuestionText, IsRequired, OrderIndex, SettingsJSON, QuestionType) 
@@ -92,6 +92,7 @@ public class QuestionRepository : IQuestionRepository
             cmd.Parameters.AddWithValue("@OrderIndex", que.OrderIndex);
             cmd.Parameters.AddWithValue("@SettingsJSON", que.SettingsJSON == null? DBNull.Value : JsonSerializer.Serialize(que.SettingsJSON));
             cmd.Parameters.AddWithValue("@QuestionType", que.QuestionType);
+            
             
             var newQuestionId =Convert.ToInt32(await cmd.ExecuteScalarAsync());;
             
@@ -110,21 +111,39 @@ public class QuestionRepository : IQuestionRepository
                 }
             }
             
-            tx.Commit();
+            await tx.CommitAsync();
             return newQuestionId;
         }
         catch(Exception e)
         {
-            tx.Rollback();
+            await tx.RollbackAsync();
             throw new Exception("Error Creating  Question " , e);
         }
     }
 
     public async Task<int> UpdateQuestionAsync(Question que)
     {
-        throw new NotImplementedException();
+        using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
+        using var cmd = new SqlCommand(
+            @"UPDATE Questions SET QuestionText = @QuestionText,
+                     IsRequired = @IsRequired, 
+                     OrderIndex = @OrderIndex,
+                     SettingsJSON = @SettingsJSON,
+                     QuestionType = @QuestionType
+              WHERE Id = @Id", conn);
+        
+        cmd.Parameters.AddWithValue("@QuestionText", que.QuestionText);
+        cmd.Parameters.AddWithValue("@IsRequired", que.IsRequired);
+        cmd.Parameters.AddWithValue("@OrderIndex", que.OrderIndex);
+        cmd.Parameters.AddWithValue("@SettingsJSON", que.SettingsJSON == null? DBNull.Value : JsonSerializer.Serialize(que.SettingsJSON));
+        cmd.Parameters.AddWithValue("@QuestionType", que.QuestionType);
+        cmd.Parameters.AddWithValue("@Id", que.Id); 
+        
+       await conn.OpenAsync();
+        var rowsAffected = await cmd.ExecuteNonQueryAsync(); 
+        return rowsAffected;    
     }
-
+    
     public async Task<bool> DeleteQuestionAsync(int id)
     {
         throw new NotImplementedException();
