@@ -1,6 +1,6 @@
 namespace DTOs;
 using Entities;
-public abstract class QuestionDto
+public class QuestionDto
 {
     public int Id { get; set; }
     public  string QuestionText { get; set; }
