@@ -1,0 +1,173 @@
+using Microsoft.AspNetCore.Mvc;
+using SurveyBusinessLayer.Interface;
+using DTOs;
+using Entities;
+using SurveyApplication.Mapper;
+
+namespace SurveyApplication.Controllers;
+
+[ApiController]
+[Route("api/surveys/{surveyId}/questions")]
+public class QuestionController : ControllerBase
+{
+    public readonly IQuestionService _questionService;
+
+    public QuestionController(IQuestionService questionRepository)
+    {
+        _questionService = questionRepository;
+    }
+
+    [HttpGet("All", Name = "GetAllQuestionsForSurvey")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<QuestionDetailsDto>>> GetAllQuestionsForSurvey(int surveyId)
+    {
+        try
+        {
+            var questions = await _questionService.GetAllQuestionsAsync(surveyId);
+            // TODO : Get all choice for question 
+            var questionDtos = questions.Select(QuestionMapper.ToQuestionDetailsDto);
+            ;
+            return Ok(questionDtos);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpGet("{id}", Name = "GetQuestionById")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<QuestionDetailsDto>> GetQuestionById(int id, int surveyId)
+    {
+        try
+        {
+            var question = await _questionService.GetQuestionByIdAsync(id, surveyId);
+            if (question == null)
+                return NotFound("Question not found");
+            return Ok(question);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpPost("", Name = "CreateQuestion")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<int>> CreateQuestion(int surveyId, [FromBody] QuestionDetailsDto questionDetailsDto)
+    {
+        try
+        {
+            var question = QuestionMapper.ToQuestionEntity(questionDetailsDto);
+            question.SurveyId = surveyId;
+            var choices = ChoiceMapper.ToChoice(questionDetailsDto);
+
+
+            var createdQuestionId = await _questionService.CreateQuestionAsync(surveyId, question, choices);
+            return Ok(createdQuestionId);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpPut("", Name = "UpdateQuestion")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> UpdateQuestion(int surveyId, [FromBody] QuestionDto questionDto)
+    {
+        try
+        {
+            var question = QuestionMapper.ToQuestionEntity(questionDto);
+            question.SurveyId = surveyId;
+
+            var updatedQuestionId = await _questionService.UpdateQuestionAsync(question);
+            return Ok(updatedQuestionId);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+
+    [HttpDelete("{id}", Name = "DeleteQuestion")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> DeleteQuestion(int id, int surveyId)
+    {
+        try
+        {
+            var deletedQuestionId = await _questionService.DeleteQuestionAsync(id);
+            return Ok(deletedQuestionId);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+    }
+}
