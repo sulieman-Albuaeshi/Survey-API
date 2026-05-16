@@ -146,6 +146,13 @@ public class QuestionRepository : IQuestionRepository
     
     public async Task<bool> DeleteQuestionAsync(int id)
     {
-        throw new NotImplementedException();
+        using var conn = new SqlConnection(DbHelperLocal.GetConnectionString()); 
+        
+        using var cmd = new SqlCommand("DELETE FROM Questions WHERE Id = @Id", conn);
+        cmd.Parameters.AddWithValue("@Id", id);
+        
+        await conn.OpenAsync();
+        var rowsAffected = await cmd.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
     }
 }

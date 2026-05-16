@@ -83,9 +83,13 @@ public class QuestionService : IQuestionService
 
     public async Task<bool> DeleteQuestionAsync(int id)
     {
-        throw new NotImplementedException();
+        if(id < 1)
+            throw new ArgumentException("Invalid question id or survey id");
+        
+        return await _questionRepository.DeleteQuestionAsync(id);
     }
     
+
     private void ValidateSurveyId(int surveyId)
     {
         if (surveyId < 1)
