@@ -42,12 +42,11 @@ public class QuestionRepository : IQuestionRepository
         }
     }
     
-    public async Task<Question?> GetQuestionByIdAsync(int id, int surveyid)
+    public async Task<Question?> GetQuestionByIdAsync( int id)
     {
         using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
-        using var cmd = new SqlCommand("SELECT * FROM Questions where Id = @id and SurveyId = @surveyId", conn);
+        using var cmd = new SqlCommand("SELECT * FROM Questions where Id = @id", conn);
         cmd.Parameters.AddWithValue("@id", id);
-        cmd.Parameters.AddWithValue("@surveyId", surveyid);
         try
         { 
             await conn.OpenAsync();

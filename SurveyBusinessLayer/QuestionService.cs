@@ -28,12 +28,12 @@ public class QuestionService : IQuestionService
         return questions;
     }
 
-    public async Task<Question?> GetQuestionByIdAsync(int id, int surveyId)
+    public async Task<Question?> GetQuestionByIdAsync(int id)
     {
-        if (id < 1 || surveyId < 1)
+        if (id < 1)
             throw new ArgumentException("Invalid question id or survey id");
         
-        var question = await _questionRepository.GetQuestionByIdAsync(id, surveyId);
+        var question = await _questionRepository.GetQuestionByIdAsync(id);
         if(question == null)
             throw new KeyNotFoundException("No question found");
         
@@ -68,14 +68,13 @@ public class QuestionService : IQuestionService
 
     public async Task<int> UpdateQuestionAsync(Question que)
     {
-        ValidateSurveyId(que.SurveyId);
         ValidateQuestion(que);
         
-        var existingQuestion = await _questionRepository.GetQuestionByIdAsync(que.Id, que.SurveyId);
+        var existingQuestion = await _questionRepository.GetQuestionByIdAsync(que.Id);
         if(existingQuestion == null)
             throw new KeyNotFoundException("No question found");
         
-        var survey = await ValidateSurveyExists(que.SurveyId);
+        var survey = await ValidateSurveyExists(existingQuestion.SurveyId);
         ValidateSurveyNotPublished(survey);
         
         return await _questionRepository.UpdateQuestionAsync(que);
@@ -89,7 +88,6 @@ public class QuestionService : IQuestionService
         return await _questionRepository.DeleteQuestionAsync(id);
     }
     
-
     private void ValidateSurveyId(int surveyId)
     {
         if (surveyId < 1)
