@@ -5,7 +5,7 @@ namespace SurveyApplication.Mapper;
 
 public class SurveyMapper
 {
-    public static SurveyDetailsDto ToSurveyDetailsDto(Survey survey)
+    public static SurveyDetailsDto ToSurveyDetailsDto(Survey survey, IEnumerable<Question> questions, IEnumerable<Choice> choices)
     {
         return new SurveyDetailsDto
         {
@@ -15,9 +15,22 @@ public class SurveyMapper
             IsActive = survey.IsActive,
             CreatedDate = survey.CreatedDate,
             IsAnonymous = survey.IsAnonymous,
-            UserId = survey.UserId,
             Status = survey.Status.ToString(),
-            // TODO : Questions = survey.Questions.Select(q => QuestionMapper.ToQuestionDto(q)).ToList()
+            Questions = questions.Select(q => new QuestionDetailsDto
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                IsRequired = q.IsRequired,
+                OrderIndex = q.OrderIndex,
+                SettingsJSON = q.SettingsJSON,
+                QuestionType = q.QuestionType,
+                Choices = choices.Where(c => c.QuestionId == q.Id).Select(c => new ChoiceDto
+                {
+                    Id = c.Id,
+                    ChoiceText = c.ChoiceText,
+                    OrderIndex = c.OrderIndex
+                }).ToList()
+            }).ToList()
         };
     }
     public static Survey ToSurveyEntity(SurveyDto surveyDto)
@@ -31,7 +44,6 @@ public class SurveyMapper
             IsAnonymous = surveyDto.IsAnonymous,
             UserId = surveyDto.UserId,
             Status = Enum.TryParse<SurveyStatus>(surveyDto.Status, out var status) ? status : SurveyStatus.Draft,
-            // TODO : Questions = surveyDto.Questions.Select(q => QuestionMapper.ToQuestionEntity(q)).ToList()
         };
     }
     public static SurveyTableDto ToSurveyTableDtos(Survey survey)

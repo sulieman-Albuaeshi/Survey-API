@@ -33,6 +33,6 @@ public class SurveyDetailsDto
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string UserId { get; set; }
-    public List<QuestionDto> Questions { get; set; } = new();
+    
+    public List<QuestionDetailsDto> Questions { get; set; } = new();
 }

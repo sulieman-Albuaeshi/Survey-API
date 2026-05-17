@@ -24,6 +24,19 @@ public class ChoiceMapper
         };
     }
     
+    public static List<ChoiceDto> ToChoiceDto(List<Choice> choices)
+    {
+        var choiceDtoList = new List<ChoiceDto>();
+        
+        choiceDtoList = choices.Select(c => new ChoiceDto
+        {
+            Id = c.Id,
+            ChoiceText = c.ChoiceText,
+            OrderIndex = c.OrderIndex
+        }).ToList();
+        return choiceDtoList;
+    }
+    
     public static List<Choice> ToChoice(QuestionDetailsDto dto)
     {
         var queList = new List<Choice>();

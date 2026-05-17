@@ -41,7 +41,7 @@ public class QuestionMapper
             OrderIndex = question.OrderIndex,
             SettingsJSON = question.SettingsJSON,
             QuestionType = Enum.Parse<QuestionType>(question.QuestionType.ToString()),
-            // TODO : Choices = question.Choices.Select(c => ChoiceMapper.ToChoiceDto(c)).ToList()
+            
         };
     }
 }
