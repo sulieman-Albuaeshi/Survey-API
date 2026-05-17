@@ -21,11 +21,3 @@ public class QuestionDetailsDto
     public QuestionType QuestionType { get; set; }
     public List<ChoiceDto> Choices { get; set; } = new();
 }
-
-public class ChoiceDto
-{
-    public int Id { get; set; }
-    public string ChoiceText { get; set; }
-    public int OrderIndex { get; set; }
-    public bool IsRandomized { get; set; }
-}
