@@ -10,11 +10,13 @@ namespace SurveyApplication.Controllers;
 [Route("api/surveys/{surveyId}/questions")]
 public class QuestionController : ControllerBase
 {
-    public readonly IQuestionService _questionService;
+    private readonly IQuestionService _questionService;
+    private readonly IChoiceService _choiceService;
 
-    public QuestionController(IQuestionService questionRepository)
+    public QuestionController(IQuestionService questionService,  IChoiceService choiceService)
     {
-        _questionService = questionRepository;
+        _questionService = questionService;
+        _choiceService = choiceService;
     }
 
     [HttpGet("All", Name = "GetAllQuestionsForSurvey")]
@@ -26,9 +28,15 @@ public class QuestionController : ControllerBase
         try
         {
             var questions = await _questionService.GetAllQuestionsAsync(surveyId);
-            // TODO : Get all choice for question 
-            var questionDtos = questions.Select(QuestionMapper.ToQuestionDetailsDto);
-            ;
+            var questionDtos = questions.Select(QuestionMapper.ToQuestionDetailsDto).ToList();
+            foreach (var queDto in questionDtos)
+            {
+                if (queDto.QuestionType is QuestionType.Radio or QuestionType.Checkbox or QuestionType.Matrix or QuestionType.Rank)
+                {
+                    var choices = await _choiceService.GetChoicesByQuestionIdAsync(queDto.Id);
+                    queDto.Choices = ChoiceMapper.ToChoiceDto(choices);
+                }
+            }
             return Ok(questionDtos);
         }
         catch (ArgumentException e)
