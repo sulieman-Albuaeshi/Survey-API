@@ -4,8 +4,6 @@ using SurveyDataAccessLayer.Interface;
 
 namespace SurveyBusinessLayer;
 
-// TODO the survey need to populated with question 
-
 public class SurveyService : ISurveyService
 {
     private readonly ISurveyRepository _surveyRepository;
@@ -73,6 +71,11 @@ public class SurveyService : ISurveyService
         return await _surveyRepository.DeleteSurveyAsync(surveyId) == 1;
     }
 
+    public async Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId)
+    {
+        return await _surveyRepository.GetQuestionsForSurveyAsync(surveyId);
+    }
+    
     private static void ValidateSurveyArgument(Survey survey)
     {
         if (survey.Title == null || survey.Title.Trim() == "")
@@ -80,4 +83,5 @@ public class SurveyService : ISurveyService
         if (survey.UserId == null || survey.UserId.Trim() == "")
             throw new ArgumentException("User ID is required.");
     }
+    
 }

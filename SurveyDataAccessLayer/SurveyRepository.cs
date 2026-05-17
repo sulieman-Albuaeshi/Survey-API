@@ -1,5 +1,5 @@
 namespace SurveyDataAccessLayer;
-
+using System.Text.Json;
 using Entities;
 using Microsoft.Data.SqlClient;
 using SurveyDataAccessLayer.Interface;
@@ -119,5 +119,55 @@ public class SurveyRepository : ISurveyRepository
         conn.Open();
         int rowsAffectedId = Convert.ToInt32(await cmd.ExecuteNonQueryAsync());
         return rowsAffectedId;
+    }
+    
+    public async Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId)
+    {
+        using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
+        using var cmd = new SqlCommand(
+            @"SELECT q.Id, q.SurveyId, q.QuestionText, q.IsRequired, q.OrderIndex, q.SettingsJSON, q.QuestionType,
+                     c.Id AS ChoiceId, c.ChoiceText, c.OrderIndex AS ChoiceOrderIndex
+              FROM Questions q
+              LEFT JOIN Choices c ON q.Id = c.QuestionId
+              WHERE q.SurveyId = @SurveyId", conn);
+        cmd.Parameters.AddWithValue("@SurveyId", surveyId);
+        await conn.OpenAsync();
+        using var reader = await cmd.ExecuteReaderAsync();
+
+        var questionDict = new Dictionary<int, Question>();
+        var ChoiceList = new List<Choice>();
+        while (await reader.ReadAsync())
+        {
+            int questionId = reader.GetInt32(reader.GetOrdinal("Id"));
+            if (!questionDict.TryGetValue(questionId, out var question))
+            {
+                question = new Question
+                {
+                    Id = questionId,
+                    SurveyId = reader.GetInt32(reader.GetOrdinal("SurveyId")),
+                    QuestionText = reader.GetString(reader.GetOrdinal("QuestionText")),
+                    IsRequired = reader.GetBoolean(reader.GetOrdinal("IsRequired")),
+                    OrderIndex = reader.GetInt32(reader.GetOrdinal("OrderIndex")),
+                    SettingsJSON = reader.IsDBNull(reader.GetOrdinal("SettingsJSON"))
+                        ? null
+                         : JsonSerializer.Deserialize<JsonElement>(reader.GetString(reader.GetOrdinal("SettingsJSON"))),
+
+                    QuestionType = (QuestionType)(reader.GetOrdinal("QuestionType")),
+                };
+                questionDict[questionId] = question;
+            }
+
+            if (!reader.IsDBNull(reader.GetOrdinal("ChoiceId")))
+            {
+                ChoiceList.Add(new Choice
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("ChoiceId")),
+                    QuestionId = question.Id,
+                    ChoiceText = reader.GetString(reader.GetOrdinal("ChoiceText")),
+                    OrderIndex = reader.GetInt32(reader.GetOrdinal("ChoiceOrderIndex"))
+                });
+            }
+        }
+        return (questionDict.Values.ToList(), ChoiceList) ;
     }
 }

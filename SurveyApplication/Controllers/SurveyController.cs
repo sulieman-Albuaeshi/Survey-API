@@ -45,7 +45,9 @@ public class SurveyController : ControllerBase
         try
         {
             var survey = await _surveyService.GetSurveyByIdAsync(id);
-            return Ok(SurveyMapper.ToSurveyDetailsDto(survey));
+            var (questionList, choiceList) = await _surveyService.GetQuestionsForSurveyAsync(id);
+            var surveyDetailsDto = SurveyMapper.ToSurveyDetailsDto(survey, questionList, choiceList);
+            return Ok(surveyDetailsDto);
 
         }
         catch (KeyNotFoundException e)

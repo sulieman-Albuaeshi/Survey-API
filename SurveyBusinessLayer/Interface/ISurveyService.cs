@@ -8,4 +8,5 @@ public interface ISurveyService
     Task<int> CreateSurveyAsync(Survey survey);
     Task<int>  UpdateSurveyAsync(Survey survey); 
     Task<bool> DeleteSurveyAsync(int surveyId);
+    Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId);
 }
