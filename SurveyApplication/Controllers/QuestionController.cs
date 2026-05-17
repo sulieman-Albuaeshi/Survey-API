@@ -45,7 +45,8 @@ public class QuestionController : ControllerBase
         }
     }
 
-    [HttpGet("{id}", Name = "GetQuestionById")]
+    // The "/" at the beginning ignores the class route completely!
+    [HttpGet("/api/questions/{id}", Name = "GetQuestionById")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -54,7 +55,7 @@ public class QuestionController : ControllerBase
     {
         try
         {
-            var question = await _questionService.GetQuestionByIdAsync(id, surveyId);
+            var question = await _questionService.GetQuestionByIdAsync(id);
             if (question == null)
                 return NotFound("Question not found");
             return Ok(question);
@@ -108,18 +109,18 @@ public class QuestionController : ControllerBase
         }
     }
 
-    [HttpPut("", Name = "UpdateQuestion")]
+    // The "/" at the beginning ignores the class route completely!
+    [HttpPut("/api/questions", Name = "UpdateQuestion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> UpdateQuestion(int surveyId, [FromBody] QuestionDto questionDto)
+    public async Task<ActionResult> UpdateQuestion([FromBody] QuestionDto questionDto)
     {
         try
         {
             var question = QuestionMapper.ToQuestionEntity(questionDto);
-            question.SurveyId = surveyId;
-
+            
             var updatedQuestionId = await _questionService.UpdateQuestionAsync(question);
             return Ok(updatedQuestionId);
         }
@@ -141,12 +142,13 @@ public class QuestionController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}", Name = "DeleteQuestion")]
+    
+    [HttpDelete("/api/questions/{id}", Name = "DeleteQuestion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> DeleteQuestion(int id, int surveyId)
+    public async Task<ActionResult> DeleteQuestion(int id)
     {
         try
         {
