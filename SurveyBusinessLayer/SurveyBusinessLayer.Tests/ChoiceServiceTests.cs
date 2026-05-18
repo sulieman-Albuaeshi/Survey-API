@@ -18,8 +18,7 @@ public class ChoiceServiceTests
         _questionRepositoryMock = new Mock<IQuestionRepository>();
         _choiceService = new ChoiceService(
             _choiceRepositoryMock.Object,
-            _questionRepositoryMock.Object,
-            Mock.Of<ISurveyRepository>());
+            _questionRepositoryMock.Object);
     }
 
     [Fact]

@@ -9,7 +9,7 @@ public class ChoiceService : IChoiceService
         private readonly IChoiceRepository _choiceRepository;
         private readonly IQuestionRepository _questionRepository;
     
-        public ChoiceService(IChoiceRepository choiceRepository, IQuestionRepository questionRepository, ISurveyRepository surveyRepository)
+        public ChoiceService(IChoiceRepository choiceRepository, IQuestionRepository questionRepository)
         {
             _choiceRepository = choiceRepository;
             _questionRepository = questionRepository;
