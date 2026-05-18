@@ -1,3 +1,4 @@
+using Entities;
 using SurveyBusinessLayer.Interface;
 using SurveyDataAccessLayer.Interface;
 using SurveyDataAccessLayer.rowDTO;
@@ -15,5 +16,35 @@ public class ResponseService : IResponseService
     public Task<List<SurveyResponseRow>> GetAllResponsesDetailsAsync()
     {
         return _responseRepository.GetAllResponsesDetailsAsync();
+    }
+
+    public async Task<List<SurveyResponseRow>> GetResponsesBySurveyIdAsync(int surveyId)
+    {
+        if (surveyId == 0)
+            throw new ArgumentException("Survey ID must be a non-zero value.", nameof(surveyId));
+        
+        var responses = await _responseRepository.GetResponsesBySurveyIdAsync(surveyId);
+        
+        if(responses.Count == 0)
+            throw new KeyNotFoundException($"No responses found for survey ID {surveyId}.");
+        
+        return responses;
+    }
+    
+    public async Task<List<SurveyResponseRow>> GetResponsesByUserIdAsync(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentException("User ID must be a non-empty value.", nameof(userId));
+        
+        int userid = int.Parse(userId);
+        if(userid <= 0)
+            throw new ArgumentException("user ID not found", nameof(userId));
+        
+        var responses = await _responseRepository.GetResponsesByUserIdAsync(userId);
+        
+        if(responses.Count == 0)
+            throw new KeyNotFoundException($"No responses found for user ID {userId}.");
+        
+        return responses;
     }
 }

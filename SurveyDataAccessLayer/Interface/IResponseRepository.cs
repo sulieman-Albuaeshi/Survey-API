@@ -6,9 +6,8 @@ namespace SurveyDataAccessLayer.Interface;
 public interface IResponseRepository
 {
      public Task<List<SurveyResponseRow>> GetAllResponsesDetailsAsync(); 
-     public Task<Responses?> GetResponseByIdAsync(int responseId);  
-     public Task<List<Responses>> GetResponsesBySurveyIdAsync(int surveyId);
-     public Task<List<Responses>> GetResponsesByUserIdAsync(string userId);
+     public Task<List<SurveyResponseRow>> GetResponsesBySurveyIdAsync(int surveyId);
+     public Task<List<SurveyResponseRow>> GetResponsesByUserIdAsync(string userId);
      public Task<int> CreateResponseAsync(Responses response);
      public Task<int> DeleteResponseAsync(int responseId);
      
