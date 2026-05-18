@@ -10,4 +10,7 @@ public interface IResponseService
     public Task<List<SurveyResponseRow>> GetResponsesBySurveyIdAsync(int surveyId);
     
     public Task<List<SurveyResponseRow>> GetResponsesByUserIdAsync(string userId);
-}
+    
+    public Task<int> GetResponsesCountAsync();
+    public Task<int> DeleteResponsesAsync(int surveyId);
+}   

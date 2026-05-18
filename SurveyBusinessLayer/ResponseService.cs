@@ -47,4 +47,17 @@ public class ResponseService : IResponseService
         
         return responses;
     }
+
+    public async Task<int> GetResponsesCountAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<int> DeleteResponsesAsync(int surveyId)
+    {
+        if (surveyId <= 0)
+            throw new ArgumentException("Survey ID must be a positive integer.", nameof(surveyId));
+        
+        return await _responseRepository.DeleteResponseAsync(surveyId);
+    }
 }

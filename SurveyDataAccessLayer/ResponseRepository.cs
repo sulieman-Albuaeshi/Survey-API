@@ -25,6 +25,7 @@ public class ResponseRepository : IResponseRepository
                                 FROM Response R
                                          INNER JOIN Answers A ON R.Id = A.ResponseId
                                          LEFT JOIN AnswerSelections ASel ON A.Id = ASel.AnswerId
+                                where R.isActive = 1
                                 ORDER BY R.Id, A.Id, ASel.RankOrder;", conn);
         return await HandleSQLRetriver(conn, cmd);
     }
@@ -47,7 +48,7 @@ public class ResponseRepository : IResponseRepository
                                 FROM Response R
                                          INNER JOIN Answers A ON R.Id = A.ResponseId
                                          LEFT JOIN AnswerSelections ASel ON A.Id = ASel.AnswerId
-                                        where R.surveyId = @surveyId
+                                        where R.surveyId = @surveyId and R.isActive = 1
                                 ORDER BY R.Id, A.Id, ASel.RankOrder;", conn);
         cmd.Parameters.AddWithValue("@SurveyId", surveyId);
         return await HandleSQLRetriver(conn, cmd);
@@ -72,7 +73,7 @@ public class ResponseRepository : IResponseRepository
                                 FROM Response R
                                          INNER JOIN Answers A ON R.Id = A.ResponseId
                                          LEFT JOIN AnswerSelections ASel ON A.Id = ASel.AnswerId
-                                where R.UserId = @userId
+                                where R.UserId = @userId and R.isActive = 1
                                 ORDER BY R.Id, A.Id, ASel.RankOrder;", conn);
         cmd.Parameters.AddWithValue("@UserId", userId);
         return await HandleSQLRetriver(conn, cmd);     
@@ -83,14 +84,22 @@ public class ResponseRepository : IResponseRepository
         throw new NotImplementedException();
     }
 
-    public async Task<int> UpdateResponseAsync(Responses response)
+    public async Task<int> DeleteResponseAsync(int surveyId)
     {
-        throw new NotImplementedException();
-    }
-
-    public async Task<int> DeleteResponseAsync(int responseId)
-    {
-        throw new NotImplementedException();
+        using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
+        using var cmd = new SqlCommand(@"UPDATE Response SET isActive = 0 WHERE SurveyId = @surveyId", conn);
+        cmd.Parameters.AddWithValue("@surveyId", surveyId);
+        try
+        {
+            await conn.OpenAsync();
+            var rowsAffected = await cmd.ExecuteNonQueryAsync();
+            
+            return rowsAffected;
+        }
+        catch (Exception e)
+        {
+            throw new Exception("An error occurred while deleting the response with surveyId " + surveyId, e);
+        }
     }
 
     private async Task<List<SurveyResponseRow>> HandleSQLRetriver(SqlConnection conn, SqlCommand cmd)
