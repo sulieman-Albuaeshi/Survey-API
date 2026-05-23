@@ -18,9 +18,9 @@ public class AnswerService : IAnswerService
     {
             
         if(surveyId < 0)  throw new ArgumentException("Survey ID cannot be negative");
-        
-        // TODO : userId should not be 1
-        return await _answerRepository.GetAllAnswersBySurveyAsync(surveyId, userId);
+        var result  = await _answerRepository.GetAllAnswersBySurveyAsync(surveyId, userId);
+        if (result == null || result.Count == 0) throw new KeyNotFoundException("No answers found for the given survey ID and user ID");
+        return result;
     }
 
     public async Task<bool> CreateAnswerAsync(Answer choice)
