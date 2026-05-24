@@ -14,16 +14,14 @@ public class ResponseRepository : IResponseRepository
         using var cmd = new SqlCommand(@"
                         SELECT R.Id AS ResponseId, S.Title AS SurveyTitle, R.SubmittedAt,
                         Q.QuestionType, A.Id, Q.QuestionText,
-                        CASE 
-                           WHEN A.AnswerType = 3 THEN A.TextValue
-                           when A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
-                           else (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
+                            IIF(A.AnswerValue is not null, A.AnswerValue, 
+                            (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
                                      ChoiceId AS [value]
                                  FROM AnswerSelections ASel
                                  WHERE ASel.AnswerId = A.Id
                                  ORDER BY RankOrder
                                  FOR JSON PATH
-                           ) END AS AnswerValue
+                           )) AS AnswerValue
                          FROM Response R
                          INNER JOIN Answers A ON R.Id = A.ResponseId
                          join dbo.Surveys S on S.Id = R.SurveyId
@@ -38,16 +36,14 @@ public class ResponseRepository : IResponseRepository
         using var cmd = new SqlCommand(@"
                         SELECT R.Id AS ResponseId, S.Title AS SurveyTitle, R.SubmittedAt,
                         Q.QuestionType, A.Id, Q.QuestionText,
-                        CASE 
-                           WHEN A.AnswerType = 3 THEN A.TextValue
-                           when A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
-                           else (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
+                        IIF(A.AnswerValue is not null, A.AnswerValue, 
+                            (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
                                      ChoiceId AS [value]
                                  FROM AnswerSelections ASel
                                  WHERE ASel.AnswerId = A.Id
                                  ORDER BY RankOrder
                                  FOR JSON PATH
-                           ) END AS AnswerValue
+                           )) AS AnswerValue
                          FROM Response R
                          INNER JOIN Answers A ON R.Id = A.ResponseId
                          join dbo.Surveys S on S.Id = R.SurveyId
@@ -64,16 +60,14 @@ public class ResponseRepository : IResponseRepository
         using var cmd = new SqlCommand(@"
                         SELECT R.Id AS ResponseId, S.Title AS SurveyTitle, R.SubmittedAt,
                         Q.QuestionType, A.Id, Q.QuestionText,
-                        CASE 
-                           WHEN A.AnswerType = 3 THEN A.TextValue
-                           when A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
-                           else (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
+                        IIF(A.AnswerValue is not null, A.AnswerValue, 
+                            (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
                                      ChoiceId AS [value]
                                  FROM AnswerSelections ASel
                                  WHERE ASel.AnswerId = A.Id
                                  ORDER BY RankOrder
                                  FOR JSON PATH
-                           ) END AS AnswerValue
+                           )) AS AnswerValue
                          FROM Response R
                          INNER JOIN Answers A ON R.Id = A.ResponseId
                          join dbo.Surveys S on S.Id = R.SurveyId
