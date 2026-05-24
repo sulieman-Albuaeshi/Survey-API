@@ -1,7 +1,7 @@
+using DTOs;
 using Entities;
 using SurveyBusinessLayer.Interface;
 using SurveyDataAccessLayer.Interface;
-using SurveyDataAccessLayer.rowDTO;
 
 namespace SurveyBusinessLayer;
 
@@ -13,12 +13,12 @@ public class ResponseService : IResponseService
         _responseRepository = responseRepository;
     }
     
-    public Task<List<SurveyResponseRow>> GetAllResponsesDetailsAsync()
+    public Task<List<ResponseDto>> GetAllResponsesDetailsAsync()
     {
         return _responseRepository.GetAllResponsesDetailsAsync();
     }
 
-    public async Task<List<SurveyResponseRow>> GetResponsesBySurveyIdAsync(int surveyId)
+    public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId)
     {
         if (surveyId == 0)
             throw new ArgumentException("Survey ID must be a non-zero value.", nameof(surveyId));
@@ -31,7 +31,7 @@ public class ResponseService : IResponseService
         return responses;
     }
     
-    public async Task<List<SurveyResponseRow>> GetResponsesByUserIdAsync(string userId)
+    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID must be a non-empty value.", nameof(userId));

@@ -1,80 +1,84 @@
+using System.Text.Json;
+using DTOs;
 using Entities;
 using Microsoft.Data.SqlClient;
 using SurveyDataAccessLayer.Interface;
-using SurveyDataAccessLayer.rowDTO;
 
 namespace SurveyDataAccessLayer;
 
 public class ResponseRepository : IResponseRepository
 {
-    public async Task<List<SurveyResponseRow>> GetAllResponsesDetailsAsync()
+    public async Task<List<ResponseDto>> GetAllResponsesDetailsAsync()
     {   
         using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
-        using var cmd = new SqlCommand(@" SELECT R.Id AS ResponseId, R.SurveyId, R.UserId, R.SubmittedAt,
-                                    A.Id AS AnswerId, A.QuestionId,  A.AnswerType, 
-                                    CASE
-                                        WHEN A.AnswerType = 3 THEN A.TextValue
-                                        ELSE NULL
-                                        END AS TextAnswer,
-                                    CASE
-                                        WHEN A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
-                                        ELSE NULL
-                                        END AS RatingAnswer,
-                                    ASel.ChoiceId,
-                                    ASel.RankOrder
-                                FROM Response R
-                                         INNER JOIN Answers A ON R.Id = A.ResponseId
-                                         LEFT JOIN AnswerSelections ASel ON A.Id = ASel.AnswerId
-                                where R.isActive = 1
-                                ORDER BY R.Id, A.Id, ASel.RankOrder;", conn);
+        using var cmd = new SqlCommand(@"
+                        SELECT R.Id AS ResponseId, S.Title AS SurveyTitle, R.SubmittedAt,
+                        Q.QuestionType, A.Id, Q.QuestionText,
+                        CASE 
+                           WHEN A.AnswerType = 3 THEN A.TextValue
+                           when A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
+                           else (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
+                                     ChoiceId AS [value]
+                                 FROM AnswerSelections ASel
+                                 WHERE ASel.AnswerId = A.Id
+                                 ORDER BY RankOrder
+                                 FOR JSON PATH
+                           ) END AS AnswerValue
+                         FROM Response R
+                         INNER JOIN Answers A ON R.Id = A.ResponseId
+                         join dbo.Surveys S on S.Id = R.SurveyId
+                             JOIN dbo.Questions Q on Q.Id = A.QuestionId
+                         where R.isActive = 1", conn);
         return await HandleSQLRetriver(conn, cmd);
     }
 
-    public async Task<List<SurveyResponseRow>> GetResponsesBySurveyIdAsync(int surveyId)
+    public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId)
     {
         using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
-        using var cmd = new SqlCommand(@"SELECT R.Id AS ResponseId, R.SurveyId, R.UserId, R.SubmittedAt,
-                                    A.Id AS AnswerId, A.QuestionId,  A.AnswerType, 
-                                    CASE
-                                        WHEN A.AnswerType = 3 THEN A.TextValue
-                                        ELSE NULL
-                                        END AS TextAnswer,
-                                    CASE
-                                        WHEN A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
-                                        ELSE NULL
-                                        END AS RatingAnswer,
-                                    ASel.ChoiceId,
-                                    ASel.RankOrder
-                                FROM Response R
-                                         INNER JOIN Answers A ON R.Id = A.ResponseId
-                                         LEFT JOIN AnswerSelections ASel ON A.Id = ASel.AnswerId
-                                        where R.surveyId = @surveyId and R.isActive = 1
-                                ORDER BY R.Id, A.Id, ASel.RankOrder;", conn);
+        using var cmd = new SqlCommand(@"
+                        SELECT R.Id AS ResponseId, S.Title AS SurveyTitle, R.SubmittedAt,
+                        Q.QuestionType, A.Id, Q.QuestionText,
+                        CASE 
+                           WHEN A.AnswerType = 3 THEN A.TextValue
+                           when A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
+                           else (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
+                                     ChoiceId AS [value]
+                                 FROM AnswerSelections ASel
+                                 WHERE ASel.AnswerId = A.Id
+                                 ORDER BY RankOrder
+                                 FOR JSON PATH
+                           ) END AS AnswerValue
+                         FROM Response R
+                         INNER JOIN Answers A ON R.Id = A.ResponseId
+                         join dbo.Surveys S on S.Id = R.SurveyId
+                              JOIN dbo.Questions Q on Q.Id = A.QuestionId
+                         where R.SurveyId = @SurveyId and R.isActive = 1", conn);
         cmd.Parameters.AddWithValue("@SurveyId", surveyId);
         return await HandleSQLRetriver(conn, cmd);
 
     }
 
-    public async Task<List<SurveyResponseRow>> GetResponsesByUserIdAsync(string userId)
+    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId)
     {
         using var conn = new SqlConnection(DbHelperLocal.GetConnectionString());
-        using var cmd = new SqlCommand(@" SELECT R.Id AS ResponseId, R.SurveyId, R.UserId, R.SubmittedAt,
-                                    A.Id AS AnswerId, A.QuestionId,  A.AnswerType, 
-                                    CASE
-                                        WHEN A.AnswerType = 3 THEN A.TextValue
-                                        ELSE NULL
-                                        END AS TextAnswer,
-                                    CASE
-                                        WHEN A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
-                                        ELSE NULL
-                                        END AS RatingAnswer,
-                                    ASel.ChoiceId,
-                                    ASel.RankOrder
-                                FROM Response R
-                                         INNER JOIN Answers A ON R.Id = A.ResponseId
-                                         LEFT JOIN AnswerSelections ASel ON A.Id = ASel.AnswerId
-                                where R.UserId = @userId and R.isActive = 1
-                                ORDER BY R.Id, A.Id, ASel.RankOrder;", conn);
+        using var cmd = new SqlCommand(@"
+                        SELECT R.Id AS ResponseId, S.Title AS SurveyTitle, R.SubmittedAt,
+                        Q.QuestionType, A.Id, Q.QuestionText,
+                        CASE 
+                           WHEN A.AnswerType = 3 THEN A.TextValue
+                           when A.AnswerType = 6 THEN CAST(A.NumberValue AS NVARCHAR(50))
+                           else (SELECT ROW_NUMBER() OVER (ORDER BY RankOrder) AS [id],
+                                     ChoiceId AS [value]
+                                 FROM AnswerSelections ASel
+                                 WHERE ASel.AnswerId = A.Id
+                                 ORDER BY RankOrder
+                                 FOR JSON PATH
+                           ) END AS AnswerValue
+                         FROM Response R
+                         INNER JOIN Answers A ON R.Id = A.ResponseId
+                         join dbo.Surveys S on S.Id = R.SurveyId
+                              JOIN dbo.Questions Q on Q.Id = A.QuestionId
+                         where R.UserId = @UserId and R.isActive = 1", conn);
         cmd.Parameters.AddWithValue("@UserId", userId);
         return await HandleSQLRetriver(conn, cmd);     
     }
@@ -102,45 +106,60 @@ public class ResponseRepository : IResponseRepository
         }
     }
 
-    private async Task<List<SurveyResponseRow>> HandleSQLRetriver(SqlConnection conn, SqlCommand cmd)
+    private async Task<List<ResponseDto>> HandleSQLRetriver(SqlConnection conn, SqlCommand cmd)
     {
         try
         {
             await conn.OpenAsync();
             var reader = await cmd.ExecuteReaderAsync();
-            var responsesList = new List<SurveyResponseRow>();
+            var responses = new Dictionary<int, ResponseDto>();
             while (await reader.ReadAsync())
             {
-                var response = new SurveyResponseRow
+                var id =  reader.GetInt32(reader.GetOrdinal("ResponseId"));
+                object? answerValue;
+                var AnswerRow = reader.GetString(reader.GetOrdinal("AnswerValue"));
+                try
                 {
-                    ResponseId = reader.GetInt32(reader.GetOrdinal("ResponseId")),
-                    SurveyId = reader.GetInt32(reader.GetOrdinal("SurveyId")),
-                    UserId = reader.GetString(reader.GetOrdinal("UserId")),
-                    SubmittedAt = reader.GetDateTime(reader.GetOrdinal("SubmittedAt")),
-                    AnswerId = reader.GetInt32(reader.GetOrdinal("AnswerId")),
-                    QuestionId = reader.GetInt32(reader.GetOrdinal("QuestionId")),
-                    AnswerType = (QuestionType)reader.GetByte(reader.GetOrdinal("AnswerType")),
-
-                    // Nullable fields - requires IsDBNull check
-                    TextAnswer = reader.IsDBNull(reader.GetOrdinal("TextAnswer"))
-                        ? null
-                        : reader.GetString(reader.GetOrdinal("TextAnswer")),
-
-                    RatingAnswer = reader.IsDBNull(reader.GetOrdinal("RatingAnswer"))
-                        ? null
-                        : reader.GetString(reader.GetOrdinal("RatingAnswer")),
-
-                    ChoiceId = reader.IsDBNull(reader.GetOrdinal("ChoiceId"))
-                        ? null
-                        : reader.GetInt32(reader.GetOrdinal("ChoiceId")),
-
-                    RankOrder = reader.IsDBNull(reader.GetOrdinal("RankOrder"))
-                        ? null
-                        : reader.GetInt32(reader.GetOrdinal("RankOrder"))
-                };
-                responsesList.Add(response);
+                    answerValue = JsonSerializer.Deserialize<object>(AnswerRow);
+                }
+                catch (JsonException e)
+                {
+                    answerValue = AnswerRow;
+                }
+                if (responses.TryGetValue(id, out var existingResponse))
+                {
+                    var answer = new AnswerQuestionDto
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        QuestionText= reader.GetString(reader.GetOrdinal("QuestionText")),
+                        AnswerType = (QuestionType)reader.GetInt32(reader.GetOrdinal("QuestionType")),
+                        Value = answerValue
+                    };
+                    existingResponse.Answers.Add(answer);
+                }
+                else
+                {
+                    responses.Add(id, new ResponseDto
+                    {
+                        ResponseId = id,
+                        SubmittedAt = reader.GetDateTime(reader.GetOrdinal("SubmittedAt")),
+                        Title = reader.GetString(reader.GetOrdinal("SurveyTitle")),
+                        Answers =
+                        [
+                            new AnswerQuestionDto
+                            {
+                                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                                QuestionText = reader.GetString(reader.GetOrdinal("QuestionText")),
+                                AnswerType = (QuestionType)reader.GetInt32(reader.GetOrdinal("QuestionType")),
+                                
+                                Value = answerValue
+                            }
+                        ]
+                    });
+                }
+              
             }
-            return responsesList;
+            return responses.Values.ToList();
         }
         catch (Exception e)
         {

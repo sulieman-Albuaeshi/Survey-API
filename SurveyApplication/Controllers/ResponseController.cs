@@ -29,9 +29,7 @@ public class ResponseController : ControllerBase
             if(responses == null || !responses.Any())
                 return NotFound("No responses found.");
             
-            
-            var responseDtos = ResponseMapper.ToResponseDto(responses);
-            return Ok(responseDtos);
+            return Ok(responses);
         }
         catch (Exception ex)
         {
@@ -54,8 +52,8 @@ public class ResponseController : ControllerBase
             if(responses == null || !responses.Any())
                 return NotFound($"No responses found for survey ID {surveyId}.");
             
-            var responseDtos = ResponseMapper.ToResponseDto(responses);
-            return Ok(responseDtos);
+            return Ok(responses);
+
         }
         catch (ArgumentException ex)
         {
@@ -88,8 +86,7 @@ public class ResponseController : ControllerBase
             if(responses == null || !responses.Any())
                 return NotFound($"No responses found for user ID {userId}.");
             
-            var responseDtos = ResponseMapper.ToResponseDto(responses);
-            return Ok(responseDtos);
+            return Ok(responses);
         }
         catch (ArgumentException ex)
         {
