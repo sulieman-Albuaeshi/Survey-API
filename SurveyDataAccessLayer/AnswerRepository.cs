@@ -43,9 +43,4 @@ public class AnswerRepository : IAnswerRepository
 
         return answers;
     }
-    
-    public async Task<bool> CreateAnswerAsync(Answer choice)
-    {
-        throw new NotImplementedException();
-    }
 }
