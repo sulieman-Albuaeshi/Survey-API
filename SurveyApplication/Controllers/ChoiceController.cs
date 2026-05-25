@@ -117,7 +117,7 @@ public class ChoiceController : ControllerBase
         {
             var result = await _choiceService.DeleteChoiceAsync(id);
             if (result)
-                return Ok(result);
+                return NoContent();
             return NotFound("Choice not found for deletion");
         }
         catch (ArgumentException ex)

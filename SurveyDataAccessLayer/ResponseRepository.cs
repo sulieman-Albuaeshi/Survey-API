@@ -117,7 +117,7 @@ public class ResponseRepository : IResponseRepository
             cmd.Parameters.AddWithValue("@UserId", response.UserId);
             cmd.Parameters.AddWithValue("@SurveyId", response.SurveyId);
             cmd.Parameters.AddWithValue("@SubmittedAt",DateTime.UtcNow);
-            cmd.Parameters.Add("@isActive", SqlDbType.Bit);
+            cmd.Parameters.Add("@isActive", SqlDbType.Bit).Value = true;
             var responseId =  Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
             if (responseId > 0)

@@ -73,7 +73,7 @@ public class SurveyController : ControllerBase
             surveyDto.Id = surveyId;
             if (surveyId > 0)
             {
-                return CreatedAtRoute("GetAllSurveys", new { id = surveyId }, surveyDto);
+                return CreatedAtRoute("GetSurveyById", new { id = surveyId }, surveyDto);
             }
             return BadRequest("Failed to create survey");
         }

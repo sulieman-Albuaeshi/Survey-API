@@ -47,7 +47,7 @@ public class SurveyService : ISurveyService
         if(survey.Status == SurveyStatus.Published)
             throw new InvalidOperationException("Cannot update a published survey.");
         
-        if(survey.Id < 0)
+        if(survey.Id <= 0)
             throw new ArgumentException("Invalid survey ID.");
         
         var exsitingSurvey = await GetSurveyByIdAsync(survey.Id);

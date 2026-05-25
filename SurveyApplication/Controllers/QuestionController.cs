@@ -97,7 +97,7 @@ public class QuestionController : ControllerBase
 
 
             var createdQuestionId = await _questionService.CreateQuestionAsync(surveyId, question, choices);
-            return Ok(createdQuestionId);
+            return CreatedAtRoute("GetQuestionById", new { id = createdQuestionId, surveyId }, createdQuestionId);
         }
         catch (ArgumentException e)
         {

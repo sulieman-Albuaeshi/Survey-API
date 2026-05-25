@@ -1,11 +1,16 @@
--- 1. Create the database
-CREATE DATABASE SurveyDB;
-GO
+create database SurveyDB collate SQL_Latin1_General_CP1_CI_AS
+go
 
--- 2. Tell SQL Server to use this new database
-USE SurveyDB;
-GO
-create table QuestionType
+use SurveyDB
+go
+
+grant connect on database :: SurveyDB to dbo
+go
+
+grant view any column encryption key definition, view any column master key definition on database :: SurveyDB to [public]
+go
+
+create table dbo.QuestionType
 (
     id           int identity
         constraint QuestionType_pk
@@ -14,7 +19,7 @@ create table QuestionType
 )
     go
 
-create table Users
+create table dbo.Users
 (
     Id        nvarchar(450)                  not null
         primary key,
@@ -28,7 +33,7 @@ create table Users
 )
     go
 
-create table Surveys
+create table dbo.Surveys
 (
     Id            int identity
         primary key,
@@ -39,19 +44,19 @@ create table Surveys
     IsAnonymous   bit       default 0            not null,
     UserId        nvarchar(450)                  not null
         constraint FK_Surveys_Users
-            references Users,
+            references dbo.Users,
     Status        tinyint   default 0            not null,
     QuestionCount int       default 0            not null
 )
     go
 
-create table Questions
+create table dbo.Questions
 (
     Id           int identity
         primary key,
     SurveyId     int           not null
         constraint FK_Questions_Surveys
-            references Surveys
+            references dbo.Surveys
             on delete cascade,
     QuestionText nvarchar(500) not null,
     IsRequired   bit default 1 not null,
@@ -59,17 +64,17 @@ create table Questions
     SettingsJSON nvarchar(max),
     QuestionType int           not null
         constraint Questions_QuestionType_id_fk
-            references QuestionType
+            references dbo.QuestionType
 )
     go
 
-create table Choices
+create table dbo.Choices
 (
     Id           int identity
         primary key,
     QuestionId   int           not null
         constraint FK_Choices_Questions
-            references Questions
+            references dbo.Questions
             on delete cascade,
     ChoiceText   nvarchar(200) not null,
     OrderIndex   int default 0 not null,
@@ -78,72 +83,69 @@ create table Choices
     go
 
 create index IX_Questions_SurveyId
-    on Questions (SurveyId)
+    on dbo.Questions (SurveyId)
     go
 
-create table Response
+create table dbo.Response
 (
     Id          int identity
         primary key,
     SurveyId    int                            not null
         constraint FK_Response_Surveys
-            references Surveys
+            references dbo.Surveys
             on delete cascade,
     UserId      nvarchar(450)
         constraint FK_Response_Users
-            references Users
+            references dbo.Users
             on delete set null,
     SubmittedAt datetime2 default getutcdate() not null,
     isActive    bit       default 0
 )
     go
 
-create table Answers
+create table dbo.Answers
 (
     Id          int identity
         primary key,
     ResponseId  int               not null
         constraint FK_Answers_Submissions
-            references Response
+            references dbo.Response
             on delete cascade,
     QuestionId  int               not null
         constraint FK_Answers_Questions
-            references Questions,
-    TextValue   nvarchar(max) sparse,
-    NumberValue decimal(18, 4) sparse,
-    DateValue   datetime2 sparse,
-    AnswerType  tinyint default 0 not null
+            references dbo.Questions,
+    AnswerType  tinyint default 0 not null,
+    AnswerValue nvarchar(100)
 )
     go
 
-create table AnswerSelections
+create table dbo.AnswerSelections
 (
     Id        int identity
         primary key,
     AnswerId  int           not null
         constraint FK_AnswerSelections_Answers
-            references Answers
+            references dbo.Answers
             on delete cascade,
     ChoiceId  int           not null
         constraint FK_AnswerSelections_Choices
-            references Choices,
+            references dbo.Choices,
     RankOrder int default 0 not null
 )
     go
 
 create index IX_Answers_SubmissionId
-    on Answers (ResponseId)
+    on dbo.Answers (ResponseId)
     go
 
 create index IX_Submissions_SurveyId
-    on Response (SurveyId)
+    on dbo.Response (SurveyId)
     go
 
 create index IX_Surveys_CreatorId
-    on Surveys (UserId)
+    on dbo.Surveys (UserId)
     go
 
 create index IX_Surveys_Status
-    on Surveys (Status)
+    on dbo.Surveys (Status)
     go
-
