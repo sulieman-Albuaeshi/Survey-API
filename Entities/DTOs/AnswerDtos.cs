@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Entities;
 
 namespace DTOs;
@@ -10,8 +11,9 @@ public class AnswerQuestionDto
     public QuestionType AnswerType { get; set; }
 }
 
-public class AnswerSelectionDto
+public class AnswerCreateDto
 {
-    public int ChoiceId { get; set; }
-    public int RankOrder { get; set; }
+    public int QuestionId { get; set; }
+    public QuestionType AnswerType { get; set; }
+    public JsonElement Value { get; set; }
 }

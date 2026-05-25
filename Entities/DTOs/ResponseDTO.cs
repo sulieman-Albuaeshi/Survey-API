@@ -1,5 +1,5 @@
 namespace DTOs;
-using Entities;
+
 public class SurveyResponsesDto
 {
     public int SurveyId { get; set; }
@@ -12,4 +12,12 @@ public class ResponseDto
     public string Title { get; set; }   
     public DateTime SubmittedAt { get; set; }
     public List<AnswerQuestionDto> Answers { get; set; } = new();
+}
+
+public class ResponseCreateDto
+{
+    public int ResponseId { get; set; }
+    public int SurveyId { get; set; }
+    public string UserId { get; set; }
+    public List<AnswerCreateDto> Answers { get; set; } = new();
 }

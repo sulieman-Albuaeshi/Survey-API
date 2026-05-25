@@ -47,6 +47,27 @@ public class ResponseService : IResponseService
         
         return responses;
     }
+    
+    public async Task<ResponseDto> GetResponseByIdAsync(int responseId)
+    {
+        if (responseId <= 0)
+            throw new ArgumentException("Response ID must be a positive integer.", nameof(responseId));
+        
+        var response = await _responseRepository.GetResponseByIdAsync(responseId);
+        
+        if(response == null)
+            throw new KeyNotFoundException($"No response found with ID {responseId}.");
+        
+        return response;
+    }
+    
+    public async Task<ResponseCreateDto> CreateResponseAsync(ResponseCreateDto responseCreateDto)
+    {
+        if (responseCreateDto == null)
+            throw new ArgumentNullException(nameof(responseCreateDto), "Response data cannot be null.");
+        
+        return await _responseRepository.CreateResponseAsync(responseCreateDto);
+    } 
 
     public async Task<int> GetResponsesCountAsync()
     {
