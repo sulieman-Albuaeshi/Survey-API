@@ -152,7 +152,7 @@ public class SurveyRepository : ISurveyRepository
                         ? null
                          : JsonSerializer.Deserialize<JsonElement>(reader.GetString(reader.GetOrdinal("SettingsJSON"))),
 
-                    QuestionType = (QuestionType)(reader.GetOrdinal("QuestionType")),
+                    QuestionType = (QuestionType)reader.GetInt32(reader.GetOrdinal("QuestionType")),
                 };
                 questionDict[questionId] = question;
             }

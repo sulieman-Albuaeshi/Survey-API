@@ -8,9 +8,11 @@ namespace SurveyBusinessLayer;
 public class ResponseService : IResponseService
 {
     private readonly IResponseRepository _responseRepository;
-    public ResponseService(IResponseRepository responseRepository)
+    private readonly IQuestionRepository _questionRepository;
+    public ResponseService(IResponseRepository responseRepository, IQuestionRepository questionRepository)
     {
         _responseRepository = responseRepository;
+        _questionRepository = questionRepository;
     }
     
     public Task<List<ResponseDto>> GetAllResponsesDetailsAsync()
@@ -65,6 +67,21 @@ public class ResponseService : IResponseService
     {
         if (responseCreateDto == null)
             throw new ArgumentNullException(nameof(responseCreateDto), "Response data cannot be null.");
+
+        var questions = _questionRepository.GetAllQuestionsAsync(responseCreateDto.SurveyId);
+        var questionIds = questions.Result
+            .Where(q => q.IsRequired)
+            .Select(q => q.Id)
+            .ToHashSet();
+        
+        var sentIds = responseCreateDto.Answers.Select(a => a.QuestionId).ToHashSet();
+        
+        if( sentIds.Count > questionIds.Count)  
+            throw new ArgumentException("Too many answers provided. Please try again.");
+        
+        var missingRequired = questionIds.Except(sentIds).ToList();
+        if (missingRequired.Any())
+            throw new ArgumentException($"Missing answers for required questions: {string.Join(", ", missingRequired)}");
         
         return await _responseRepository.CreateResponseAsync(responseCreateDto);
     } 
