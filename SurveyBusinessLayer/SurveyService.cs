@@ -1,6 +1,7 @@
-using Entities;
 using SurveyBusinessLayer.Interface;
-using SurveyDataAccessLayer.Interface;
+using Repository.Interface;
+using Repository.Models;
+using SurveyBusinessLayer.DTOs;
 
 namespace SurveyBusinessLayer;
 
@@ -13,54 +14,122 @@ public class SurveyService : ISurveyService
         _surveyRepository = surveyRepository;
     }
     
-    public async Task<List<Survey>> GetAllSurveysAsync()
+    public async Task<List<SurveyDto>> GetAllSurveysAsync()
     {
-        var SurveyList = await _surveyRepository.GetAllSurveysAsync();
-        if (SurveyList == null || !SurveyList.Any())
+        var surveyList = await _surveyRepository.GetAllSurveysAsync();
+        if (surveyList == null || !surveyList.Any())
             throw new KeyNotFoundException("Survey not found.");
-        
-        return SurveyList;
+
+        List<SurveyDto> dto = surveyList.Select(s => new SurveyDto
+        {
+            Id = s.Id,
+            Title = s.Title,
+            Description = s.Description,
+            IsAnonymous = s.IsAnonymous,
+            QuestionCount = s.QuestionCount,
+            Status = s.Status.ToString(),
+            CreatedAt = s.CreatedAt
+        }).ToList();
+
+        return dto;
     }
     
-    public async Task<Survey?> GetSurveyByIdAsync(int surveyId)
+    public async Task<SurveyDto?> GetSurveyByIdAsync(int surveyId)
     {
         var survey = await _surveyRepository.GetSurveyByIdAsync(surveyId);
         if (survey == null)
             throw new KeyNotFoundException("Survey not found.");
         
-        return survey;
+        var surveyDto = new SurveyDto
+        {
+            Id = survey.Id,
+            Title = survey.Title,
+            Description = survey.Description,
+            IsAnonymous = survey.IsAnonymous,
+            QuestionCount = survey.QuestionCount,
+            Status = survey.Status.ToString(),
+            CreatedAt = survey.CreatedAt
+        };
+
+        return surveyDto;
     }
     
-    public async Task<int> CreateSurveyAsync(Survey survey)
+    public async Task<SurveyDto> CreateSurveyAsync(CreateSurveyDto surveyDto)
     {
-        ValidateSurveyArgument(survey);
-        survey.Status = SurveyStatus.Draft;
-        survey.CreatedDate = DateTime.UtcNow;
-        survey.QuestionCount = 0;
-        return await _surveyRepository.CreateSurveyAsync(survey);
-    }
-    
-    public async Task<int> UpdateSurveyAsync(Survey survey)
-    {
-        ValidateSurveyArgument(survey);
+
+        Survey survey = new Survey
+        {
+            Id = surveyDto.Id,
+            Title = surveyDto.Title,
+            Description = surveyDto.Description,
+            IsAnonymous = surveyDto.IsAnonymous,
+            Status = SurveyStatus.Draft,
+            CreatedAt = DateTime.UtcNow,
+            QuestionCount = 0,
+            UserId = surveyDto.userId
+        };
+
+        ValidateSurveyArgument(surveyDto);
         
-        if(survey.Status == SurveyStatus.Published)
+        var createdSurvey = await _surveyRepository.CreateSurveyAsync(survey);
+
+        if (createdSurvey == null)
+            throw new KeyNotFoundException("Survey was not created.");
+
+        var createdSurveyDto = new SurveyDto
+        {
+            Id = createdSurvey.Id,
+            Title = createdSurvey.Title,
+            Description = createdSurvey.Description,
+            IsAnonymous = createdSurvey.IsAnonymous,
+            QuestionCount = createdSurvey.QuestionCount,
+            Status = createdSurvey.Status.ToString(),
+            CreatedAt = createdSurvey.CreatedAt
+        };
+
+        return createdSurveyDto;
+    }
+
+    public async Task<SurveyDto> UpdateSurveyAsync(CreateSurveyDto surveyDto)
+    {
+        ValidateSurveyArgument(surveyDto);
+
+        Survey survey = new Survey
+        {
+            Id = surveyDto.Id,
+            Title = surveyDto.Title,
+            Description = surveyDto.Description,
+            IsAnonymous = surveyDto.IsAnonymous,
+            Status = SurveyStatus.Draft,
+            CreatedAt = DateTime.UtcNow,
+            QuestionCount = 0,
+            UserId = surveyDto.userId
+        };
+
+        if (survey.Status == SurveyStatus.Published)
             throw new InvalidOperationException("Cannot update a published survey.");
         
         if(survey.Id <= 0)
             throw new ArgumentException("Invalid survey ID.");
         
-        var exsitingSurvey = await GetSurveyByIdAsync(survey.Id);
-        
-        if(exsitingSurvey == null)
-            throw new KeyNotFoundException("Survey not found.");
-        
-        // TODO if the user authorized
-        if(survey.UserId !=  exsitingSurvey?.UserId)
-            throw new ArgumentException("User IDs do not match.");
-        //throw new UnauthorizedAccessException("You are not authorized to update this survey.");
-        
-        return await _surveyRepository.UpdateSurveyAsync(survey);
+
+        var createdSurvey = await _surveyRepository.UpdateSurveyAsync(survey);
+
+        if (createdSurvey == null)
+            throw new KeyNotFoundException("Survey was not updated.");
+
+        var createdSurveyDto = new SurveyDto
+        {
+            Id = createdSurvey.Id,
+            Title = createdSurvey.Title,
+            Description = createdSurvey.Description,
+            IsAnonymous = createdSurvey.IsAnonymous,
+            QuestionCount = createdSurvey.QuestionCount,
+            Status = createdSurvey.Status.ToString(),
+            CreatedAt = createdSurvey.CreatedAt
+        };
+
+        return createdSurveyDto;
     }
     
     public async Task<bool> DeleteSurveyAsync(int surveyId)
@@ -71,17 +140,15 @@ public class SurveyService : ISurveyService
         return await _surveyRepository.DeleteSurveyAsync(surveyId) == 1;
     }
 
+    // TODO what is this Method ? returning a tuple of List<Question> and List<Choice> for a given surveyId ???? where to put ?
     public async Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId)
     {
         return await _surveyRepository.GetQuestionsForSurveyAsync(surveyId);
     }
     
-    private static void ValidateSurveyArgument(Survey survey)
+    private static void ValidateSurveyArgument(CreateSurveyDto survey)
     {
         if (survey.Title == null || survey.Title.Trim() == "")
             throw new ArgumentException("Survey title is required.");
-        if (survey.UserId == null || survey.UserId.Trim() == "")
-            throw new ArgumentException("User ID is required.");
     }
-    
 }

@@ -1,8 +1,7 @@
-using DTOs;
 using Microsoft.AspNetCore.Mvc;
 using SurveyBusinessLayer.Interface;
-using Entities;
-using SurveyApplication.Mapper;
+using SurveyBusinessLayer.DTOs;
+
 
 namespace SurveyApplication.Controllers;
 
@@ -19,14 +18,13 @@ public class SurveyController : ControllerBase
     [HttpGet("All", Name = "GetAllSurveys")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<SurveyTableDto>>> GetAllSurveys()
+    public async Task<ActionResult<IEnumerable<SurveyDto>>> GetAllSurveys()
     {
         try
         {
             var surveyList = await _surveyService.GetAllSurveysAsync();
             
-            var surveyTableDtos = surveyList.Select(survey => SurveyMapper.ToSurveyTableDtos(survey)).ToList();
-            return Ok(surveyTableDtos);
+            return Ok(surveyList);
         }
         catch (KeyNotFoundException e)
         {
@@ -40,14 +38,16 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDetailsDto>> GetSurveyByIdAsync(int id)
+
+    // need to return SurveyDetailsDto but for now we return surveyDto
+    public async Task<ActionResult<SurveyDto>> GetSurveyByIdAsync(int id)
     {
         try
         {
             var survey = await _surveyService.GetSurveyByIdAsync(id);
-            var (questionList, choiceList) = await _surveyService.GetQuestionsForSurveyAsync(id);
-            var surveyDetailsDto = SurveyMapper.ToSurveyDetailsDto(survey, questionList, choiceList);
-            return Ok(surveyDetailsDto);
+            //var (questionList, choiceList) = await _surveyService.GetQuestionsForSurveyAsync(id);
+            //var surveyDetailsDto = SurveyMapper.ToSurveyDetailsDto(survey, questionList, choiceList);
+            return Ok(survey);
 
         }
         catch (KeyNotFoundException e)
@@ -64,16 +64,15 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDto>> CreateSurvey(SurveyDto surveyDto)
+    public async Task<ActionResult<SurveyDto>> CreateSurvey(CreateSurveyDto surveyDto)
     {
         try
-        {
-            var survey = SurveyMapper.ToSurveyEntity(surveyDto);
-            var  surveyId = await _surveyService.CreateSurveyAsync(survey);
-            surveyDto.Id = surveyId;
-            if (surveyId > 0)
+        { 
+            var  survey = await _surveyService.CreateSurveyAsync(surveyDto);
+            surveyDto.Id = survey.Id;
+            if (survey.Id > 0)
             {
-                return CreatedAtRoute("GetSurveyById", new { id = surveyId }, surveyDto);
+                return CreatedAtRoute("GetSurveyById", new { id = survey.Id }, surveyDto);
             }
             return BadRequest("Failed to create survey");
         }
@@ -94,29 +93,16 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, SurveyDto dto)
+    public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, CreateSurveyDto dto)
     {
         try
         {
-            var survey = new Survey
-            {
-                Id = id,
-                Title = dto.Title,
-                Description = dto.Description,
-                IsAnonymous = dto.IsAnonymous,
-                IsActive = dto.IsActive,
-                UserId = dto.UserId,
-                Status = Enum.TryParse<SurveyStatus>(dto.Status, out var status) ? status : SurveyStatus.Draft,
-            };
-        
-            var  numberOfRowEffected  = await _surveyService.UpdateSurveyAsync(survey);
+            dto.Id = id;
+            var survey  = await _surveyService.UpdateSurveyAsync(dto);
 
-            if (numberOfRowEffected > 0)
-            {
-                var srv = SurveyMapper.ToSurveyDto(survey);
-                return Ok(srv);
-            }
-            return BadRequest("Failed to update survey");
+            if (survey == null) return BadRequest("Failed to update survey");
+
+            return Ok(survey);
         }
         catch (ArgumentException e)
         {
@@ -156,7 +142,15 @@ public class SurveyController : ControllerBase
         {
             return BadRequest(e.Message);
         }
-        catch(Exception e)
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
         {
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
