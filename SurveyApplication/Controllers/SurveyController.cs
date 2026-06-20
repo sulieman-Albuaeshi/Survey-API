@@ -64,15 +64,16 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDto>> CreateSurvey(CreateSurveyDto surveyDto)
+    public async Task<ActionResult<SurveyDetailsDto>> CreateSurvey(CreateSurveyDto surveyDto)
     {
         try
-        { 
-            var  survey = await _surveyService.CreateSurveyAsync(surveyDto);
-            surveyDto.Id = survey.Id;
+        {
+            // TODO : Get userId from the authenticated user context instead of hardcoding it
+            surveyDto.userId = "Test";
+            var  survey = await _surveyService.CreateSurveyWithQuestionsAsync(surveyDto);
             if (survey.Id > 0)
             {
-                return CreatedAtRoute("GetSurveyById", new { id = survey.Id }, surveyDto);
+                return CreatedAtRoute("GetSurveyById", new { id = survey.Id }, survey);
             }
             return BadRequest("Failed to create survey");
         }
@@ -93,12 +94,12 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, CreateSurveyDto dto)
+    public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, UpdaatSurveyDto dto)
     {
         try
         {
             dto.Id = id;
-            var survey  = await _surveyService.UpdateSurveyAsync(dto);
+            var survey  = await _surveyService.UpdateSurveyWithQuestionsAsync(dto);
 
             if (survey == null) return BadRequest("Failed to update survey");
 
