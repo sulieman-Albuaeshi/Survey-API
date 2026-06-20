@@ -30,8 +30,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Survey> Surveys { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=SurveyDB;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
