@@ -16,39 +16,131 @@ namespace Repository
 
         public async Task<List<Survey>> GetAllSurveysAsync()
         {
-            return await _context.Surveys.ToListAsync();
+            return await _context.Surveys
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<Survey?> GetSurveyByIdAsync(int surveyId)
         {
-            return await _context.Surveys.FindAsync(surveyId);
+            return await _context.Surveys
+                        .Include(s => s.Questions)
+                        .ThenInclude(q => q.Choices)
+                        .AsSplitQuery()
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(s => s.Id == surveyId);
         }
 
-        public async Task<Survey> CreateSurveyAsync(Survey survey)
+        public async Task<Survey> CreateSurveyAsync(Survey newSurvey)
         {
-            await _context.AddAsync(survey);
-            await _context.SaveChangesAsync();
-            return survey;
-        }
-
-        public async Task<Survey> UpdateSurveyAsync(Survey survey)
-        {
-            var existingSurvey = await _context.Surveys.FindAsync(survey.Id);
-            if (existingSurvey != null)
+            foreach(var (question, index) in newSurvey.Questions.Select((q, i) => (q, i+1)))
             {
-                existingSurvey.Title = survey.Title;
-                existingSurvey.Description = survey.Description;
-                existingSurvey.IsActive = survey.IsActive;
-                existingSurvey.IsAnonymous = survey.IsAnonymous;
-                existingSurvey.Status = survey.Status;
-                // TODO is QeustionCount something we should update here? .
-                existingSurvey.QuestionCount = survey.QuestionCount;
+                question.OrderIndex = index;
+                foreach(var (choice, choiceIndex) in question.Choices.Select((c, i) => (c, i+1)))
+                {
+                    choice.OrderIndex = choiceIndex;
+                }
+            }
+            newSurvey.QuestionCount = newSurvey.Questions.Count;
+
+            try
+            {
+                await _context.AddAsync(newSurvey);
                 await _context.SaveChangesAsync();
+
+            }
+            catch(Exception e)
+            {
+                throw new Exception($"Database save failed: {e.InnerException?.Message ?? e.Message}", e);
+            }
+            return newSurvey;
+        }
+
+        public async Task<Survey> UpdateSurveyAsync(Survey Updatedsurvey)
+        {
+            var newQuestionIDs = Updatedsurvey.Questions
+                                 .Where(q => q.Id > 0)
+                                 .Select(q => q.Id)
+                                 .ToHashSet();
+            var incomingChoiceIDs = Updatedsurvey.Questions
+                                 .SelectMany(q => q.Choices)
+                                 .Where(c => c.Id > 0)
+                                 .Select(c => c.Id)
+                                 .ToHashSet();
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+
+                await _context.Choices
+                    .Where(c => newQuestionIDs.Contains(c.QuestionId) && !incomingChoiceIDs.Contains(c.Id))
+                    .ExecuteDeleteAsync();
+
+                await _context.Questions
+                    .Where(q => q.SurveyId == Updatedsurvey.Id && !newQuestionIDs.Contains(q.Id))
+                    .ExecuteDeleteAsync();
+
+                var existingSurvey = await _context.Surveys
+                    .Include(q => q.Questions)
+                    .ThenInclude(c => c.Choices)
+                    .FirstOrDefaultAsync(s => s.Id == Updatedsurvey.Id);
+
+                if (existingSurvey == null) throw new KeyNotFoundException($"Survey with ID {Updatedsurvey.Id} not found.");
+
+                existingSurvey.Title = Updatedsurvey.Title;
+                existingSurvey.Description = Updatedsurvey.Description;
+                existingSurvey.IsAnonymous = Updatedsurvey.IsAnonymous;
+                existingSurvey.Status = Updatedsurvey.Status;
+                existingSurvey.QuestionCount = Updatedsurvey.Questions.Count;
+
+                int QuestionInsex = 0;
+                foreach (var question in Updatedsurvey.Questions)
+                {
+                    var existingQuestion = existingSurvey.Questions.FirstOrDefault(q => q.Id == question.Id);
+                    if (existingQuestion != null)
+                    {
+                        existingQuestion.QuestionText = question.QuestionText;
+                        existingQuestion.IsRequired = question.IsRequired;
+                        existingQuestion.OrderIndex = ++QuestionInsex;
+
+                        int ChoiceIndex = 0;
+                        foreach (var choice in question.Choices)
+                        {
+                            var existingChoice = existingQuestion.Choices.FirstOrDefault(c => c.Id == choice.Id);
+                            if (existingChoice != null)
+                            {
+                                existingChoice.ChoiceText = choice.ChoiceText;
+                                existingChoice.OrderIndex = ++ChoiceIndex;
+                            }
+                            else
+                            {
+                                choice.OrderIndex = ++ChoiceIndex;
+                                existingQuestion.Choices.Add(choice);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        question.OrderIndex = ++QuestionInsex;
+
+                        int choiceIndex = 0;
+                        foreach (var choice in question.Choices)
+                        {
+                            choice.OrderIndex = ++choiceIndex;
+                        }
+                        existingSurvey.Questions.Add(question);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
                 return existingSurvey;
             }
-            else
+            catch
             {
-                throw new KeyNotFoundException($"Survey with ID {survey.Id} not found.");
+                await transaction.RollbackAsync();
+                throw;
             }
         }
 
@@ -71,6 +163,10 @@ namespace Repository
             return await _context.SaveChangesAsync();
         }
         
+        public Task<int> ContextSaveChangesAsync()
+        {
+            return _context.SaveChangesAsync();
+        }
 
         public Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId)
         {

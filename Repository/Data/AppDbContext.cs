@@ -76,6 +76,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.IsRequired).HasDefaultValue(true);
             entity.Property(e => e.QuestionText).HasMaxLength(500);
+            entity.Ignore(q => q.QuestionTypeEnum); // Ignore the QuestionTypeEnum property in EF Core mapping
 
             entity.HasOne(d => d.QuestionType).WithMany(p => p.Questions)
                 .HasForeignKey(d => d.QuestionTypeId)
@@ -113,7 +114,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.UserId, "IX_Surveys_UserId");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Title).HasMaxLength(200);
         });
 
