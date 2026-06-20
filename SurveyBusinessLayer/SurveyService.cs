@@ -34,13 +34,13 @@ public class SurveyService : ISurveyService
         return dto;
     }
     
-    public async Task<SurveyDto?> GetSurveyByIdAsync(int surveyId)
+    public async Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId)
     {
         var survey = await _surveyRepository.GetSurveyByIdAsync(surveyId);
         if (survey == null)
             throw new KeyNotFoundException("Survey not found.");
-        
-        var surveyDto = new SurveyDto
+
+        var surveyDtoDTOs = new SurveyDetailsDto
         {
             Id = survey.Id,
             Title = survey.Title,
@@ -48,35 +48,57 @@ public class SurveyService : ISurveyService
             IsAnonymous = survey.IsAnonymous,
             QuestionCount = survey.QuestionCount,
             Status = survey.Status.ToString(),
-            CreatedAt = survey.CreatedAt
+            CreatedAt = survey.CreatedAt,
+            Questions = survey.Questions.Select(q => new QuestionDetailsDto
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                IsRequired = q.IsRequired,
+                OrderIndex = q.OrderIndex,
+                QuestionTypeName = q.QuestionTypeEnum.ToString(),
+                Choices = q.Choices.Select(c => new ChoiceDto
+                {
+                    Id = c.Id,
+                    ChoiceText = c.ChoiceText,
+                    OrderIndex = c.OrderIndex
+                }).ToList()
+            }).ToList()
         };
 
-        return surveyDto;
+        return surveyDtoDTOs;
     }
     
-    public async Task<SurveyDto> CreateSurveyAsync(CreateSurveyDto surveyDto)
+    public async Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto SurveydetailsDto)
     {
 
-        Survey survey = new Survey
+        var MapedSurvey = new Survey
         {
-            Id = surveyDto.Id,
-            Title = surveyDto.Title,
-            Description = surveyDto.Description,
-            IsAnonymous = surveyDto.IsAnonymous,
-            Status = SurveyStatus.Draft,
-            CreatedAt = DateTime.UtcNow,
-            QuestionCount = 0,
-            UserId = surveyDto.userId
+            Title = SurveydetailsDto.Title,
+            Description = SurveydetailsDto.Description,
+            IsAnonymous = SurveydetailsDto.IsAnonymous,
+            Status = Enum.Parse<SurveyStatus>(SurveydetailsDto.Status),
+            Questions = SurveydetailsDto.Questions.Select(q => new Question
+            {
+                QuestionText = q.QuestionText,
+                IsRequired = q.IsRequired,
+                QuestionTypeId = (int)Enum.Parse<enQuestionType>(q.QuestionType),
+                Choices = q.Choices.Select(c => new Choice
+                {
+                    ChoiceText = c.ChoiceText,
+                }).ToList()
+            }).ToList(),
+            UserId = SurveydetailsDto.userId,
+
         };
 
-        ValidateSurveyArgument(surveyDto);
+        //ValidateSurveyArgument(SurveydetailsDto);
         
-        var createdSurvey = await _surveyRepository.CreateSurveyAsync(survey);
+        var createdSurvey = await _surveyRepository.CreateSurveyAsync(MapedSurvey);
 
         if (createdSurvey == null)
             throw new KeyNotFoundException("Survey was not created.");
 
-        var createdSurveyDto = new SurveyDto
+        var createdSurveyDto = new SurveyDetailsDto
         {
             Id = createdSurvey.Id,
             Title = createdSurvey.Title,
@@ -84,52 +106,86 @@ public class SurveyService : ISurveyService
             IsAnonymous = createdSurvey.IsAnonymous,
             QuestionCount = createdSurvey.QuestionCount,
             Status = createdSurvey.Status.ToString(),
-            CreatedAt = createdSurvey.CreatedAt
+            CreatedAt = createdSurvey.CreatedAt,
+            Questions = createdSurvey.Questions.Select(q => new QuestionDetailsDto
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                IsRequired = q.IsRequired,
+                OrderIndex = q.OrderIndex,
+                QuestionTypeName = q.QuestionTypeEnum.ToString(),
+                Choices = q.Choices.Select(c => new ChoiceDto
+                {
+                    Id = c.Id,
+                    ChoiceText = c.ChoiceText,
+                    OrderIndex = c.OrderIndex
+                }).ToList()
+            }).ToList()
         };
 
         return createdSurveyDto;
     }
 
-    public async Task<SurveyDto> UpdateSurveyAsync(CreateSurveyDto surveyDto)
+    public async Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto SurveydetailsDto)
     {
-        ValidateSurveyArgument(surveyDto);
+        //ValidateSurveyArgument(SurveydetailsDto);
 
-        Survey survey = new Survey
+        var MapedSurvey = new Survey
         {
-            Id = surveyDto.Id,
-            Title = surveyDto.Title,
-            Description = surveyDto.Description,
-            IsAnonymous = surveyDto.IsAnonymous,
-            Status = SurveyStatus.Draft,
-            CreatedAt = DateTime.UtcNow,
-            QuestionCount = 0,
-            UserId = surveyDto.userId
+            Id = SurveydetailsDto.Id,
+            Title = SurveydetailsDto.Title,
+            Description = SurveydetailsDto.Description,
+            IsAnonymous = SurveydetailsDto.IsAnonymous,
+            Status = Enum.Parse<SurveyStatus>(SurveydetailsDto.Status),
+            QuestionCount = SurveydetailsDto.Questions.Count(),
+            Questions = SurveydetailsDto.Questions.Select(q => new Question
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                IsRequired = q.IsRequired,
+                QuestionTypeId = (int)Enum.Parse<enQuestionType>(q.QuestionType),
+                Choices = q.Choices.Select(c => new Choice
+                {
+                    Id = c.Id,
+                    ChoiceText = c.ChoiceText,
+                }).ToList()
+            }).ToList()
         };
 
-        if (survey.Status == SurveyStatus.Published)
+        if (MapedSurvey.Status == SurveyStatus.Published)
             throw new InvalidOperationException("Cannot update a published survey.");
         
-        if(survey.Id <= 0)
+        if(MapedSurvey.Id <= 0)
             throw new ArgumentException("Invalid survey ID.");
         
 
-        var createdSurvey = await _surveyRepository.UpdateSurveyAsync(survey);
+        var createdSurvey = await _surveyRepository.UpdateSurveyAsync(MapedSurvey);
 
         if (createdSurvey == null)
             throw new KeyNotFoundException("Survey was not updated.");
 
-        var createdSurveyDto = new SurveyDto
+        var UpdatedSurveyDto = new SurveyDetailsDto
         {
             Id = createdSurvey.Id,
             Title = createdSurvey.Title,
             Description = createdSurvey.Description,
             IsAnonymous = createdSurvey.IsAnonymous,
-            QuestionCount = createdSurvey.QuestionCount,
             Status = createdSurvey.Status.ToString(),
-            CreatedAt = createdSurvey.CreatedAt
+            Questions = createdSurvey.Questions.Select(q => new QuestionDetailsDto
+            {
+                Id = q.Id,
+                QuestionText = q.QuestionText,
+                IsRequired = q.IsRequired,
+                QuestionTypeName = q.QuestionTypeEnum.ToString(),
+                Choices = q.Choices.Select(c => new ChoiceDto
+                {
+                    Id = c.Id,
+                    ChoiceText = c.ChoiceText,
+                }).ToList()
+            }).ToList()
         };
 
-        return createdSurveyDto;
+        return UpdatedSurveyDto;
     }
     
     public async Task<bool> DeleteSurveyAsync(int surveyId)
@@ -146,9 +202,10 @@ public class SurveyService : ISurveyService
         return await _surveyRepository.GetQuestionsForSurveyAsync(surveyId);
     }
     
-    private static void ValidateSurveyArgument(CreateSurveyDto survey)
+    private static void ValidateSurveyArgument(SurveyDetailsDto survey)
     {
         if (survey.Title == null || survey.Title.Trim() == "")
             throw new ArgumentException("Survey title is required.");
+
     }
 }

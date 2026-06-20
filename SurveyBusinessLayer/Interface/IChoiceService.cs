@@ -1,5 +1,6 @@
 namespace SurveyBusinessLayer.Interface;
-using Entities;
+
+using Repository.Models;
 
 public interface IChoiceService
 {
