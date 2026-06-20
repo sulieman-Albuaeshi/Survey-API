@@ -4,10 +4,6 @@ namespace SurveyBusinessLayer.Interface;
 
 public interface IQuestionService
 {
-    Task<List<QuestionDto>> GetAllQuestionsAsync(int surveyId);
-    Task<QuestionDto?> GetQuestionByIdAsync(int id);
-
-    Task<SurveyDetailsDto> SaveQuestionAsync(SurveyDetailsDto questionDtos);
-    Task<QuestionDto> CreateQuestionAsync(Question que);
-    Task<bool> DeleteQuestionAsync(int id);
+    Task<List<QuestionDetailsDto>> GetAllQuestionsAsync(int surveyId);
+    Task<QuestionDetailsDto?> GetQuestionByIdAsync(int id);
 }

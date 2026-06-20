@@ -15,8 +15,7 @@ namespace Repository
         public Task<List<Question>> GetAllQuestions(int surveyId)
         {
             return _context.Questions
-                .Include(q => q.Choices)
-                .Include(q => q.QuestionType)
+                .Include(q => q.Choices.OrderBy(c => c.OrderIndex))
                 .Where(q => q.SurveyId == surveyId)
                 .ToListAsync();
             
@@ -25,13 +24,8 @@ namespace Repository
         public Task<Question?> GetQuestionByIdAsync(int id)
         {
             return _context.Questions
-                .Include(q => q.Choices)
-                .Include(q => q.QuestionType)
+                .Include(q => q.Choices.OrderBy(c => c.OrderIndex))
                 .FirstOrDefaultAsync(q => q.Id == id);
-        }
-        public Task<Survey> SaveQuestionWithSurveyAsync(Survey survey)
-        {
-            throw new NotImplementedException();
         }
     }
 }
