@@ -1,23 +1,24 @@
-using DTOs;
-using Entities;
+
 using SurveyBusinessLayer.Interface;
-using SurveyDataAccessLayer.Interface;
+using Repository.Interface;
+using Repository.Models;
+using SurveyBusinessLayer.DTOs;
 
 namespace SurveyBusinessLayer;
 
 public class ResponseService : IResponseService
 {
     private readonly IResponseRepository _responseRepository;
-    private readonly IQuestionRepository _questionRepository;
-    public ResponseService(IResponseRepository responseRepository, IQuestionRepository questionRepository)
+    public ResponseService(IResponseRepository responseRepository)
     {
         _responseRepository = responseRepository;
-        _questionRepository = questionRepository;
     }
     
     public Task<List<ResponseDto>> GetAllResponsesDetailsAsync()
     {
-        return _responseRepository.GetAllResponsesDetailsAsync();
+                throw new NotImplementedException("still in refactoring");
+
+        //return _responseRepository.GetAllResponsesDetailsAsync();
     }
 
     public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId)
@@ -29,8 +30,8 @@ public class ResponseService : IResponseService
         
         if(responses.Count == 0)
             throw new KeyNotFoundException($"No responses found for survey ID {surveyId}.");
-        
-        return responses;
+
+        throw new NotImplementedException("still in refactoring");
     }
     
     public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId)
@@ -46,10 +47,11 @@ public class ResponseService : IResponseService
         
         if(responses.Count == 0)
             throw new KeyNotFoundException($"No responses found for user ID {userId}.");
-        
-        return responses;
+
+        throw new NotImplementedException("still in refactoring");
+
     }
-    
+
     public async Task<ResponseDto> GetResponseByIdAsync(int responseId)
     {
         if (responseId <= 0)
@@ -60,31 +62,59 @@ public class ResponseService : IResponseService
         if(response == null)
             throw new KeyNotFoundException($"No response found with ID {responseId}.");
         
-        return response;
+                throw new NotImplementedException("still in refactoring");
+
     }
     
-    public async Task<ResponseCreateDto> CreateResponseAsync(ResponseCreateDto responseCreateDto)
+    public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto responseCreateDto)
     {
         if (responseCreateDto == null)
             throw new ArgumentNullException(nameof(responseCreateDto), "Response data cannot be null.");
 
-        var questions = _questionRepository.GetAllQuestionsAsync(responseCreateDto.SurveyId);
-        var questionIds = questions.Result
-            .Where(q => q.IsRequired)
-            .Select(q => q.Id)
-            .ToHashSet();
-        
-        var sentIds = responseCreateDto.Answers.Select(a => a.QuestionId).ToHashSet();
-        
-        if( sentIds.Count > questionIds.Count)  
-            throw new ArgumentException("Too many answers provided. Please try again.");
-        
-        var missingRequired = questionIds.Except(sentIds).ToList();
-        if (missingRequired.Any())
-            throw new ArgumentException($"Missing answers for required questions: {string.Join(", ", missingRequired)}");
-        
-        return await _responseRepository.CreateResponseAsync(responseCreateDto);
-    } 
+        if(responseCreateDto.SurveyId <= 0)
+            throw new KeyNotFoundException("Survey ID must be a positive integer.");
+
+        if(responseCreateDto.Answers == null || !responseCreateDto.Answers.Any())
+            throw new InvalidOperationException("required questions must be answered");
+
+        var response = new Response
+        {
+            SurveyId = responseCreateDto.SurveyId,
+            UserId = responseCreateDto.UserId,
+            SubmittedAt = responseCreateDto.SubmittedAt,
+            Answers = responseCreateDto.Answers.Select(a => new Answer
+            {
+                QuestionId = a.QuestionId,
+                AnswerType = a.AnswerType,
+                AnswerValue = a.AnswerValue,
+                AnswerSelections = a.RankedChoices?.Select(s => new AnswerSelection
+                {
+                    ChoiceId = s.ChoiceId,
+                    RankOrder = s.RankOrder
+                }).ToList() ?? new List<AnswerSelection>()
+            }).ToList()
+        };
+        var createdResponse = await _responseRepository.SubmitResponseAsync(response);
+
+        var responseDetailsDto = new ResponseDetailsDto
+        {
+            ResponseId = createdResponse.Id,
+            Title = createdResponse.Survey.Title,
+            SubmittedAt = createdResponse.SubmittedAt,
+            Answers = createdResponse.Answers.Select(a => new AnswerQuestionDto
+            {
+                QuestionText= a.Question.QuestionText,
+                AnswerType = a.Question.QuestionTypeEnum.ToString(),
+                AnswerValue = a.AnswerValue,
+                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
+                {
+                    ChoiceId = s.ChoiceId,
+                    RankOrder = s.RankOrder
+                }).ToList() ?? new List<ChoiceRankingDto>()
+            }).ToList()
+        };
+        return responseDetailsDto;
+    }
 
     public async Task<int> GetResponsesCountAsync()
     {

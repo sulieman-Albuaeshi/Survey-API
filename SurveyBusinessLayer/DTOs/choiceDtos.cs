@@ -19,3 +19,9 @@ public class updateChoiceDto
 
     public string ChoiceText { get; set; } = null!;
 }
+
+public class ChoiceRankingDto
+{
+    public int ChoiceId { get; set; }
+    public int RankOrder { get; set; }
+}
