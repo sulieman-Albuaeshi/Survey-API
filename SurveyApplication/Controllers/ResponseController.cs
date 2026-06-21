@@ -1,7 +1,8 @@
-using DTOs;
 using Microsoft.AspNetCore.Mvc;
-using SurveyApplication.Mapper;
 using SurveyBusinessLayer.Interface;
+using SurveyBusinessLayer.DTOs;
+using Microsoft.Identity.Client;
+
 
 namespace SurveyApplication.Controllers;
 
@@ -143,12 +144,23 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> CreateResponse([FromBody] ResponseCreateDto responseCreateDto)
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> SubmitResponse([FromBody] ResponseCreateDto responseCreateDto)
     {
         try
         {
-            var createdResponse = await _responseService.CreateResponseAsync(responseCreateDto);
-            return CreatedAtRoute("GetResponseById", new { responseId = createdResponse }, createdResponse);
+            var createdResponse = await _responseService.SubmitResponseAsync(responseCreateDto);
+            return CreatedAtRoute("GetResponseById", new { responseId = createdResponse.ResponseId}, createdResponse);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            // Log the exception (not implemented here)
+            return NotFound(ex.Message);
+        }
+        catch(ArgumentOutOfRangeException ex)
+        {
+            // Log the exception (not implemented here)
+            return BadRequest(ex.Message);
         }
         catch (ArgumentException ex)
         {
@@ -161,6 +173,7 @@ public class ResponseController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
         }
     }
+    
     
     
     [HttpDelete("survey/{surveyId}", Name = "DeleteResponsesBySurvey")]
