@@ -38,8 +38,5 @@ public partial class Question
     public virtual ICollection<Answer> Answers { get; set; } = new List<Answer>();
 
     public virtual ICollection<Choice> Choices { get; set; } = new List<Choice>();
-
-    public virtual QuestionType QuestionType { get; set; } = null!;
-
     public virtual Survey Survey { get; set; } = null!;
 }

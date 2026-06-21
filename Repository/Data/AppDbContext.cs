@@ -24,8 +24,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Question> Questions { get; set; }
 
-    public virtual DbSet<Repository.Models.QuestionType> QuestionTypes { get; set; }
-
     public virtual DbSet<Response> Responses { get; set; }
 
     public virtual DbSet<Survey> Surveys { get; set; }
@@ -76,21 +74,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.QuestionText).HasMaxLength(500);
             entity.Ignore(q => q.QuestionTypeEnum); // Ignore the QuestionTypeEnum property in EF Core mapping
 
-            entity.HasOne(d => d.QuestionType).WithMany(p => p.Questions)
-                .HasForeignKey(d => d.QuestionTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Questions_QuestionTypes");
-
             entity.HasOne(d => d.Survey).WithMany(p => p.Questions)
                 .HasForeignKey(d => d.SurveyId)
                 .HasConstraintName("FK_Questions_Surveys");
-        });
-
-        modelBuilder.Entity<Repository.Models.QuestionType>(entity =>
-        {
-            entity.Property(e => e.TypeName)
-                .HasMaxLength(50)
-                .IsUnicode(false);
         });
 
         modelBuilder.Entity<Response>(entity =>
