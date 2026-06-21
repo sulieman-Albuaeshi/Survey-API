@@ -87,6 +87,9 @@ namespace Repository
 
                 if (existingSurvey == null) throw new KeyNotFoundException($"Survey with ID {Updatedsurvey.Id} not found.");
 
+                if (existingSurvey.Status == SurveyStatus.Published)
+                    throw new InvalidOperationException("Cannot update a published survey.");
+
                 existingSurvey.Title = Updatedsurvey.Title;
                 existingSurvey.Description = Updatedsurvey.Description;
                 existingSurvey.IsAnonymous = Updatedsurvey.IsAnonymous;
@@ -163,14 +166,38 @@ namespace Repository
             return await _context.SaveChangesAsync();
         }
         
-        public Task<int> ContextSaveChangesAsync()
+        public async Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText)
         {
-            return _context.SaveChangesAsync();
-        }
+            var survey = await _context.Surveys.FindAsync(surveyId);
+            if (survey == null)
+                throw new KeyNotFoundException($"Survey with ID {surveyId} not found.");
+            
+            if (!Enum.TryParse<SurveyStatus>(statusText, true, out var newStatus))
+                throw new ArgumentException($"Invalid status: {statusText}. Valid statuses are: {string.Join(", ", Enum.GetNames(typeof(SurveyStatus)))}");
+            
+            if (survey.Status == newStatus)
+                throw new InvalidOperationException($"Survey is already in the {newStatus} status.");
+            
+            if (survey.Status == SurveyStatus.Published && newStatus != SurveyStatus.Archived)
+                throw new InvalidOperationException("Cannot change status of a Published survey to anything other than Archived.");
+            
+            if(survey.Status == SurveyStatus.Archived && newStatus != SurveyStatus.Draft)
+                throw new InvalidOperationException("Cannot change status of an Archived survey to anything other than Draft.");
 
-        public Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId)
-        {
-            throw new NotImplementedException();
+            if(survey.Status == SurveyStatus.Draft && newStatus != SurveyStatus.Published)
+                throw new InvalidOperationException("Cannot change status of a Draft survey directly to Archived. Please publish it first.");
+            
+            if (survey.Status == SurveyStatus.Draft && newStatus == SurveyStatus.Published)
+            {
+                // Double-check your user didn't build an accidental ghost survey
+                var hasQuestions = await _context.Questions.AnyAsync(q => q.SurveyId == surveyId);
+                if (!hasQuestions)
+                    throw new InvalidOperationException("You cannot publish a survey that has no questions.");
+            }
+
+            survey.Status = newStatus;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

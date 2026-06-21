@@ -45,3 +45,8 @@ public class SurveyDetailsDto
     public DateTime CreatedAt { get; set; }
     public List<QuestionDetailsDto> Questions { get; set; } = new List<QuestionDetailsDto>();
 }
+
+public class SurveyStatusDto
+{
+    public string StatusText { set; get; } = null!;
+}

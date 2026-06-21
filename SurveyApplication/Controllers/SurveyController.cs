@@ -156,4 +156,43 @@ public class SurveyController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
+
+
+    [HttpPatch("{id}/status", Name = "ChangeSurveyStatus")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ChangeSurveyStatus(int id, SurveyStatusDto status)
+    {
+        if(string.IsNullOrEmpty(status.StatusText))
+        {
+            return BadRequest("Status text cannot be null or empty");
+        }
+
+        try
+        {
+            var updated = await _surveyService.ChangeSurveyStatusAsync(id, status.StatusText);
+
+            if (!updated)
+                return NotFound("Failed to update survey status");
+
+            return NoContent();
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (KeyNotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
+        catch (InvalidOperationException e)
+        {
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
+        }
+
+    }
 }

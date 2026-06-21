@@ -9,5 +9,5 @@ public interface ISurveyRepository
     Task<Survey> CreateSurveyAsync(Survey survey);
     Task<Survey> UpdateSurveyAsync(Survey survey);
     Task<int> DeleteSurveyAsync(int surveyId);
-    Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId);
+    Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText);
 }

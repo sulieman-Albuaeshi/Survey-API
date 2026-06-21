@@ -128,8 +128,6 @@ public class SurveyService : ISurveyService
 
     public async Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto SurveydetailsDto)
     {
-        //ValidateSurveyArgument(SurveydetailsDto);
-
         var MapedSurvey = new Survey
         {
             Id = SurveydetailsDto.Id,
@@ -196,16 +194,13 @@ public class SurveyService : ISurveyService
         return await _surveyRepository.DeleteSurveyAsync(surveyId) == 1;
     }
 
-    // TODO what is this Method ? returning a tuple of List<Question> and List<Choice> for a given surveyId ???? where to put ?
-    public async Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId)
+    public async Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText)
     {
-        return await _surveyRepository.GetQuestionsForSurveyAsync(surveyId);
-    }
-    
-    private static void ValidateSurveyArgument(SurveyDetailsDto survey)
-    {
-        if (survey.Title == null || survey.Title.Trim() == "")
-            throw new ArgumentException("Survey title is required.");
-
+        if (surveyId <= 0)
+            throw new ArgumentException("Invalid survey id.");
+        var status = await _surveyRepository.ChangeSurveyStatusAsync(surveyId, statusText);
+        if (!status)
+            throw new KeyNotFoundException("there is no survey with the specified ID.");
+        return status;
     }
 }

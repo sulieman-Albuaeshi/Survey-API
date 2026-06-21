@@ -247,4 +247,319 @@ public class SurveyServiceTests
         Assert.Equal("Brand New Choice inside New Question", targetNewChoice.ChoiceText);
         Assert.Equal(1, targetNewChoice.OrderIndex); // First choice in the new question gets index 1
     }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldSuccessfullyPublishDraft_WhenSurveyHasQuestions()
+    {
+        // ==========================================
+        //  ARRANGE: Seed a Draft survey with a question
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var draftSurvey = new Survey
+            {
+                Title = "Ready to Publish Survey",
+                Description = "Has questions, ready to go live.",
+                IsAnonymous = false,
+                Status = SurveyStatus.Draft,
+                UserId = "test-user-123",
+                Questions = new List<Question>
+                {
+                    new Question
+                    {
+                        QuestionText = "Do you like writing integration tests?",
+                        OrderIndex = 1,
+                        QuestionTypeId = 1
+                    }
+                }
+            };
+            await seedContext.Surveys.AddAsync(draftSurvey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = draftSurvey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT: Transition Draft -> Published
+        // ==========================================
+        // (Assuming your Service maps this call down to your Repository method)
+        var result = await service.ChangeSurveyStatusAsync(testSurveyId, "Published");
+
+        // ==========================================
+        //  ASSERT: Verify DB entry switched cleanly
+        // ==========================================
+        Assert.True(result);
+
+        var updatedSurvey = await context.Surveys.FindAsync(testSurveyId);
+        Assert.NotNull(updatedSurvey);
+        Assert.Equal(SurveyStatus.Published, updatedSurvey.Status);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowInvalidOperationException_WhenPublishingDraftWithNoQuestions()
+    {
+        // ==========================================
+        //  ARRANGE: Seed an empty Draft survey (0 questions)
+        // ==========================================
+        int ghostSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var ghostSurvey = new Survey
+            {
+                Title = "Empty Ghost Survey",
+                Description = "Accidentally left blank.",
+                Status = SurveyStatus.Draft,
+                UserId = "test-user-123"
+            };
+            await seedContext.Surveys.AddAsync(ghostSurvey);
+            await seedContext.SaveChangesAsync();
+            ghostSurveyId = ghostSurvey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Validation rule must halt execution
+        // ==========================================
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ChangeSurveyStatusAsync(ghostSurveyId, "Published"));
+
+        Assert.Contains("cannot publish a survey that has no questions", exception.Message);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowInvalidOperationException_WhenMakingIllegalStateJump()
+    {
+        // ==========================================
+        //  ARRANGE: Seed a Draft survey
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var draftSurvey = new Survey
+            {
+                Title = "Strict State Survey",
+                Status = SurveyStatus.Draft,
+                UserId = "test-user-123"
+            };
+            await seedContext.Surveys.AddAsync(draftSurvey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = draftSurvey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Cannot jump from Draft straight to Archived
+        // ==========================================
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ChangeSurveyStatusAsync(testSurveyId, "Archived"));
+
+        Assert.Contains("Cannot change status of a Draft survey directly to Archived", exception.Message);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowArgumentException_WhenStatusTextIsGarbage()
+    {
+        // ==========================================
+        //  ARRANGE: Seed a survey
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var survey = new Survey { Title = "Typo Test", Status = SurveyStatus.Draft, UserId = "test-user-123" };
+            await seedContext.Surveys.AddAsync(survey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = survey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Text parsing must fail gracefully
+        // ==========================================
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.ChangeSurveyStatusAsync(testSurveyId, "NotAValidStatusName"));
+
+        Assert.Contains("Invalid status", exception.Message);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowKeyNotFoundException_WhenIdDoesNotExist()
+    {
+        // ==========================================
+        //  ARRANGE: Empty environment
+        // ==========================================
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Handled database miss
+        // ==========================================
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.ChangeSurveyStatusAsync(99999, "Published"));
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowInvalidOperationException_WhenTargetStatusMatchesCurrentStatus()
+    {
+        // ==========================================
+        //  ARRANGE: Seed a survey in Published status
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var survey = new Survey { Title = "Status Match Test", Status = SurveyStatus.Published, UserId = "test-user-123" };
+            await seedContext.Surveys.AddAsync(survey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = survey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Trying to change to "Published" again must throw
+        // ==========================================
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ChangeSurveyStatusAsync(testSurveyId, "Published"));
+
+        Assert.Contains("already in the Published status", exception.Message);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowInvalidOperationException_WhenChangingPublishedToAnythingButArchived()
+    {
+        // ==========================================
+        //  ARRANGE: Seed a Published survey
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var survey = new Survey { Title = "Published Guard Test", Status = SurveyStatus.Published, UserId = "test-user-123" };
+            await seedContext.Surveys.AddAsync(survey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = survey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Changing Published -> Draft must throw
+        // ==========================================
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ChangeSurveyStatusAsync(testSurveyId, "Draft"));
+
+        Assert.Contains("Cannot change status of a Published survey to anything other than Archived", exception.Message);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldThrowInvalidOperationException_WhenChangingArchivedToAnythingButDraft()
+    {
+        // ==========================================
+        //  ARRANGE: Seed an Archived survey
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var survey = new Survey { Title = "Archived Guard Test", Status = SurveyStatus.Archived, UserId = "test-user-123" };
+            await seedContext.Surveys.AddAsync(survey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = survey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT & ASSERT: Changing Archived -> Published must throw
+        // ==========================================
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ChangeSurveyStatusAsync(testSurveyId, "Published"));
+
+        Assert.Contains("Cannot change status of an Archived survey to anything other than Draft", exception.Message);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldSuccessfullyArchive_WhenSurveyIsPublished()
+    {
+        // ==========================================
+        //  ARRANGE: Seed a Published survey
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var survey = new Survey { Title = "Live Survey", Status = SurveyStatus.Published, UserId = "test-user-123" };
+            await seedContext.Surveys.AddAsync(survey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = survey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT: Transition Published -> Archived
+        // ==========================================
+        var result = await service.ChangeSurveyStatusAsync(testSurveyId, "Archived");
+
+        // ==========================================
+        //  ASSERT: Ensure state changed successfully
+        // ==========================================
+        Assert.True(result);
+
+        var updatedSurvey = await context.Surveys.FindAsync(testSurveyId);
+        Assert.NotNull(updatedSurvey);
+        Assert.Equal(SurveyStatus.Archived, updatedSurvey.Status);
+    }
+
+    [Fact]
+    public async Task ChangeSurveyStatusAsync_ShouldSuccessfullyRevertToDraft_WhenSurveyIsArchived()
+    {
+        // ==========================================
+        //  ARRANGE: Seed an Archived survey
+        // ==========================================
+        int testSurveyId;
+        using (var seedContext = CreateTestDbContext())
+        {
+            var survey = new Survey { Title = "Old Archived Survey", Status = SurveyStatus.Archived, UserId = "test-user-123" };
+            await seedContext.Surveys.AddAsync(survey);
+            await seedContext.SaveChangesAsync();
+            testSurveyId = survey.Id;
+        }
+
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+
+        // ==========================================
+        //  ACT: Transition Archived -> Draft
+        // ==========================================
+        var result = await service.ChangeSurveyStatusAsync(testSurveyId, "Draft");
+
+        // ==========================================
+        //  ASSERT: Ensure state reverted back to Draft
+        // ==========================================
+        Assert.True(result);
+
+        var updatedSurvey = await context.Surveys.FindAsync(testSurveyId);
+        Assert.NotNull(updatedSurvey);
+        Assert.Equal(SurveyStatus.Draft, updatedSurvey.Status);
+    }
 }
