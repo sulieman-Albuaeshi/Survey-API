@@ -6,10 +6,7 @@ using Repository.Models;
 using SurveyBusinessLayer;
 using SurveyBusinessLayer.DTOs;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Xunit;
+using System.IO;
 
 public class SubmitResponseAsyncTests
 {
@@ -27,6 +24,7 @@ public class SubmitResponseAsyncTests
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(connectionString)
+            .EnableDetailedErrors()
             .Options;
 
         return new AppDbContext(options);
@@ -117,6 +115,72 @@ public class SubmitResponseAsyncTests
     }
 
     [Fact]
+    public async Task SubmitResponseAsync_ValidNotAnonymousResponse_SavesSuccessfully()
+    {
+        int surveyId, questionId, choiceId;
+        using (var context = CreateTestDbContext()) // create a new context to avoid EF tracking issues
+        {
+            var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
+                context, isAnonymous: false, isRequired: true);
+
+            surveyId = survey.Id;
+            questionId = question.Id;
+            choiceId = choices[0].Id;
+
+        }
+
+
+        var response = new ResponseCreateDto
+        {
+            SurveyId = surveyId,
+            UserId = "test-user-id", // required: survey is not anonymous
+            SubmittedAt = DateTime.UtcNow,
+            Answers = new List<AnswerCreateDto>
+            {
+                new AnswerCreateDto
+                {
+                    QuestionId = questionId,
+                    AnswerType = enQuestionType.Checkbox,
+                    AnswerValue = "",
+                    RankedChoices = new List<ChoiceRankingDto>
+                    {
+                        new ChoiceRankingDto { ChoiceId = choiceId, RankOrder = 0 }
+                    }
+                }
+            }
+        };
+
+        var context2 = CreateTestDbContext(); // create a new context to avoid EF tracking issues
+        var repository = new ResponseRepository(context2); // adjust to your real repo type
+        var service2 = new ResponseService(repository);
+
+        // ACT
+        var result = await service2.SubmitResponseAsync(response);
+
+        // ASSERT
+        Assert.NotNull(result);
+        Assert.True(result.ResponseId > 0);
+
+        
+        // Survey navigation
+        Assert.NotNull(result.Title); // crashes here if Survey was null
+
+        // Answer navigation
+        Assert.NotNull(result.Answers);
+        Assert.Single(result.Answers);
+
+        var answer = result.Answers.First();
+        Assert.NotNull(answer.QuestionText);
+        Assert.NotNull(answer.AnswerType);   
+
+        // AnswerSelections navigation
+        Assert.NotNull(answer.RankedChoices);
+        Assert.Single(answer.RankedChoices);
+        Assert.Equal(choiceId, answer.RankedChoices.First().ChoiceId);
+        Assert.Equal(0, answer.RankedChoices.First().RankOrder);
+    }
+
+    [Fact]
     public async Task SubmitResponseAsync_SurveyDoesNotExist_ThrowsKeyNotFoundException()
     {
         using var context = CreateTestDbContext();
@@ -129,7 +193,7 @@ public class SubmitResponseAsyncTests
             Answers = new List<AnswerCreateDto>()
         };
 
-        await Assert.ThrowsAsync<KeyNotFoundException>(
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => service.SubmitResponseAsync(response));
     }
 

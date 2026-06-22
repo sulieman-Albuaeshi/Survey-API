@@ -83,7 +83,12 @@ namespace Repository
             _context.Add(response);
             await _context.SaveChangesAsync();
 
-            return response;
-        }
+            return await _context.Responses
+                .Include(s => s.Survey)
+                .Include(s => s.Answers)
+                    .ThenInclude(a => a.Question)
+                .FirstAsync(r => r.Id == response.Id);  
+
+    }
     }
 }
