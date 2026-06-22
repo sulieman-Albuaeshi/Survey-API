@@ -187,13 +187,29 @@ public class SubmitResponseAsyncTests
         var repository = new ResponseRepository(context);
         var service = new ResponseService(repository);
 
+        var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
+            context, isAnonymous: true, isRequired: false);
+    
+
         var response = new ResponseCreateDto
         {
             SurveyId = -999, // guaranteed not to exist
             Answers = new List<AnswerCreateDto>()
+            {
+                new AnswerCreateDto
+                {
+                    QuestionId = question.Id,
+                    AnswerType = enQuestionType.Checkbox,
+                    AnswerValue = "",
+                    RankedChoices = new List<ChoiceRankingDto>
+                    {
+                        new ChoiceRankingDto { ChoiceId = choices[0].Id, RankOrder = 0 }
+                    }
+                }
+            }
         };
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAsync<KeyNotFoundException>(
             () => service.SubmitResponseAsync(response));
     }
 

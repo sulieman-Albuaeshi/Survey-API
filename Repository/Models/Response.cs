@@ -19,3 +19,10 @@ public partial class Response
 
     public virtual Survey Survey { get; set; } = null!;
 }
+
+public class ResponseValidationDataDto
+{
+    public bool? IsAnonymous { get; set; }
+    public List<int> RequiredQuestionIds { get; set; } = new List<int>();
+    public List<int> ValidChoiceIds { get; set; } = new List<int>();
+}

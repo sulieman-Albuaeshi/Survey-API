@@ -1,8 +1,9 @@
 
-using SurveyBusinessLayer.Interface;
+using Microsoft.EntityFrameworkCore;
 using Repository.Interface;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
+using SurveyBusinessLayer.Interface;
 
 namespace SurveyBusinessLayer;
 
@@ -68,14 +69,35 @@ public class ResponseService : IResponseService
     
     public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto responseCreateDto)
     {
+        // survey validation
         if (responseCreateDto == null)
             throw new ArgumentNullException(nameof(responseCreateDto), "Response data cannot be null.");
 
-        if(responseCreateDto.SurveyId <= 0)
-            throw new KeyNotFoundException("Survey ID must be a positive integer.");
-
         if(responseCreateDto.Answers == null || !responseCreateDto.Answers.Any())
             throw new InvalidOperationException("required questions must be answered");
+
+        var validationData = await _responseRepository.GetValidationDataForSurveyAsync(responseCreateDto.SurveyId);
+
+        if (validationData?.IsAnonymous == null)
+            throw new KeyNotFoundException($"Survey with ID {responseCreateDto.SurveyId} not found.");
+
+        if ( validationData.IsAnonymous  == false && string.IsNullOrEmpty(responseCreateDto.UserId))
+            throw new InvalidOperationException("Survey is not anonymous, userId must be provided.");
+
+        var missingRequiredIds = validationData.RequiredQuestionIds
+            .Where(id => !responseCreateDto.Answers.Select(a => a.QuestionId)
+            .Contains(id))
+            .Count();
+
+        if (missingRequiredIds != 0)
+            throw new InvalidOperationException("All required questions must be answered.");
+
+        var submittedChoiceIds = responseCreateDto.Answers
+            .SelectMany(a => a.RankedChoices?.Select(s => s.ChoiceId) ?? Enumerable.Empty<int>())
+            .ToHashSet();
+
+        if (!submittedChoiceIds.All(id => validationData.ValidChoiceIds.Contains(id)))
+            throw new InvalidOperationException("One or more selected choices are invalid.");
 
         var response = new Response
         {
