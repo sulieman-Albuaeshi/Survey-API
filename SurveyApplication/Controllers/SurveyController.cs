@@ -18,11 +18,11 @@ public class SurveyController : ControllerBase
     [HttpGet("All", Name = "GetAllSurveys")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<SurveyDto>>> GetAllSurveys()
+    public async Task<ActionResult<IEnumerable<SurveyDto>>> GetAllSurveys(int pageSize, int pageNumber)
     {
         try
         {
-            var surveyList = await _surveyService.GetAllSurveysAsync();
+            var surveyList = await _surveyService.GetAllSurveysAsync(pageSize, pageNumber);
             
             return Ok(surveyList);
         }

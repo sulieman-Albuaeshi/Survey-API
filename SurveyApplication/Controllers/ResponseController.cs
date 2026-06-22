@@ -21,11 +21,11 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<ResponseDto>>> GetAllResponses()
+    public async Task<ActionResult<IEnumerable<ResponseDto>>> GetAllResponses(int pageSize, int pageNumber)
     {
         try
         {
-            var responses = await _responseService.GetAllResponsesDetailsAsync();
+            var responses = await _responseService.GetAllResponsesDetailsAsync(pageSize, pageNumber);
             
             if(responses == null || !responses.Any())
                 return NotFound("No responses found.");

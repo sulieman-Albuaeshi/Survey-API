@@ -14,9 +14,12 @@ public class SurveyService : ISurveyService
         _surveyRepository = surveyRepository;
     }
     
-    public async Task<List<SurveyDto>> GetAllSurveysAsync()
+    public async Task<List<SurveyDto>> GetAllSurveysAsync(int pageSize, int pageNumber)
     {
-        var surveyList = await _surveyRepository.GetAllSurveysAsync();
+        if (pageSize <= 0 || pageNumber <= 0)
+            throw new ArgumentException("Page size and page number must be greater than zero.");
+
+        var surveyList = await _surveyRepository.GetAllSurveysAsync(pageSize, pageNumber);
         if (surveyList == null || !surveyList.Any())
             throw new KeyNotFoundException("Survey not found.");
 

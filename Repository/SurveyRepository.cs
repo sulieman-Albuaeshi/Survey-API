@@ -14,9 +14,16 @@ namespace Repository
             _context = context;
         }
 
-        public async Task<List<Survey>> GetAllSurveysAsync()
+        public async Task<List<Survey>> GetAllSurveysAsync(int pageNumber, int pageSize)
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 10 || pageSize > 20) pageSize = 10; 
+
+            int recordToSkip = (pageNumber - 1) * pageSize;
             return await _context.Surveys
+                .OrderByDescending(s => s.Id)
+                .Skip(recordToSkip)
+                .Take(pageSize)
                 .AsNoTracking()
                 .ToListAsync();
         }

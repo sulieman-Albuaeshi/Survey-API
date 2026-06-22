@@ -2,6 +2,7 @@
 using Repository.Models;
 using Repository.Interface;
 using Repository.Data;
+using Microsoft.Data.SqlClient.DataClassification;
 namespace Repository
 {
     public class ResponseRepository : IResponseRepository
@@ -18,9 +19,17 @@ namespace Repository
             throw new NotImplementedException();
         }
 
-        public Task<List<Response>> GetAllResponsesDetailsAsync()
+        public Task<List<Response>> GetAllResponsesDetailsAsync(int pageSize, int pageNumber)
         {
-            throw new NotImplementedException();
+            if (pageSize < 1 || pageSize > 100) pageSize = 10;
+            if (pageNumber < 1) pageNumber = 1;
+
+            int recordToSkip = (pageNumber - 1) * pageSize;
+
+            return _context.Responses
+                .Skip(recordToSkip)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
         public Task<Response> GetResponseByIdAsync(int responseId)

@@ -4,7 +4,7 @@ using Repository.Models;
 
 public interface ISurveyRepository
 {
-    Task<List<Survey>> GetAllSurveysAsync();
+    Task<List<Survey>> GetAllSurveysAsync(int skipage, int takepage);
     Task<Survey?> GetSurveyByIdAsync(int surveyId);
     Task<Survey> CreateSurveyAsync(Survey survey);
     Task<Survey> UpdateSurveyAsync(Survey survey);

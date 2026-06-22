@@ -5,7 +5,7 @@ using DTOs;
 
 public interface ISurveyService
 {
-    Task<List<SurveyDto>> GetAllSurveysAsync();
+    Task<List<SurveyDto>> GetAllSurveysAsync(int pageSize, int pageNumber);
     Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId);
     Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto survey);
     Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto survey);

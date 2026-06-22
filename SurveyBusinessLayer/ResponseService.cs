@@ -15,11 +15,32 @@ public class ResponseService : IResponseService
         _responseRepository = responseRepository;
     }
     
-    public Task<List<ResponseDto>> GetAllResponsesDetailsAsync()
+    public async Task<List<ResponseDto>> GetAllResponsesDetailsAsync(int pageSize, int pageNumber)
     {
-                throw new NotImplementedException("still in refactoring");
+        if (pageSize <= 0 || pageNumber <= 0)
+            throw new ArgumentException("Page size and page number must be greater than zero.");
 
-        //return _responseRepository.GetAllResponsesDetailsAsync();
+        var response = await _responseRepository.GetAllResponsesDetailsAsync(pageSize, pageNumber);
+        
+        var responseDtos = response.Select(r => new ResponseDto
+        {
+            ResponseId = r.Id,
+            Title = r.Survey.Title,
+            SubmittedAt = r.SubmittedAt,
+            Answers = r.Answers.Select(a => new AnswerQuestionDto
+            {
+                QuestionText = a.Question.QuestionText,
+                AnswerType = a.Question.QuestionTypeEnum.ToString(),
+                AnswerValue = a.AnswerValue,
+                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
+                {
+                    ChoiceId = s.ChoiceId,
+                    RankOrder = s.RankOrder
+                }).ToList() ?? new List<ChoiceRankingDto>()
+            }).ToList()
+        }).ToList();
+
+        return responseDtos;
     }
 
     public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId)
