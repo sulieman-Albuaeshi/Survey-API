@@ -203,4 +203,12 @@ public class SurveyService : ISurveyService
             throw new KeyNotFoundException("there is no survey with the specified ID.");
         return status;
     }
+
+    public async Task<bool?> IsSurveyAnonymous(int surveyId)
+    {
+        if (surveyId <= 0)
+            throw new ArgumentException("Invalid survey id.");
+
+        return await _surveyRepository.IsSurveyAnonymousAsync(surveyId);
+    }
 }

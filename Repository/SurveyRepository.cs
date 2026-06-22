@@ -199,5 +199,10 @@ namespace Repository
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool?> IsSurveyAnonymousAsync(int surveyId)
+        {
+            return await _context.Surveys.Where(s => s.Id == surveyId && s.IsAnonymous).Select(s => (bool?)s.IsAnonymous).FirstOrDefaultAsync();
+        }
     }
 }

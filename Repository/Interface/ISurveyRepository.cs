@@ -10,4 +10,5 @@ public interface ISurveyRepository
     Task<Survey> UpdateSurveyAsync(Survey survey);
     Task<int> DeleteSurveyAsync(int surveyId);
     Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText);
+    public Task<bool?> IsSurveyAnonymousAsync(int surveyId);
 }
