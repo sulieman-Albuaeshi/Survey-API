@@ -9,7 +9,6 @@ public class AnswerQuestionDto
     public string QuestionText { get; set; } = null!;
     public string AnswerType { get; set; } = null!;
     public string? AnswerValue { get; set; }
-    public List<int>? SelectedChoiceIds { get; set; }
     public List<ChoiceRankingDto>? RankedChoices { get; set; }
 }
 

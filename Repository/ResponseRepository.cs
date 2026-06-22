@@ -27,6 +27,12 @@ namespace Repository
             int recordToSkip = (pageNumber - 1) * pageSize;
 
             return _context.Responses
+                .Include(r => r.Answers)
+                    .ThenInclude(a => a.AnswerSelections)
+                    //.ThenInclude(an => an.Choice)
+                .Include(r => r.Survey)
+                    .ThenInclude(a => a.Questions)
+                .OrderByDescending(r => r.Id)
                 .Skip(recordToSkip)
                 .Take(pageSize)
                 .ToListAsync();
