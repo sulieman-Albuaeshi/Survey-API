@@ -82,6 +82,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Response>(entity =>
         {
             entity.HasIndex(e => e.SurveyId, "IX_Responses_SurveyId");
+            entity.HasIndex(e => e.UserId, "IX_Responses_UserID");
 
             entity.Property(e => e.SubmittedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.UserId).HasMaxLength(450);
