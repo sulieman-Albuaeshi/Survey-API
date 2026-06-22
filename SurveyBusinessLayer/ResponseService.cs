@@ -29,6 +29,7 @@ public class ResponseService : IResponseService
             SubmittedAt = r.SubmittedAt,
             Answers = r.Answers.Select(a => new AnswerQuestionDto
             {
+                Id = a.Id,
                 QuestionText = a.Question.QuestionText,
                 AnswerType = a.Question.QuestionTypeEnum.ToString(),
                 AnswerValue = a.AnswerValue,

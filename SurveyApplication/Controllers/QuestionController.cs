@@ -10,12 +10,9 @@ namespace SurveyApplication.Controllers;
 public class QuestionController : ControllerBase
 {
     private readonly IQuestionService _questionService;
-    private readonly IChoiceService _choiceService;
-
-    public QuestionController(IQuestionService questionService,  IChoiceService choiceService)
+    public QuestionController(IQuestionService questionService)
     {
         _questionService = questionService;
-        _choiceService = choiceService;
     }
 
     [HttpGet("All", Name = "GetAllQuestionsForSurvey")]
@@ -72,10 +69,4 @@ public class QuestionController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
         }
     }
-    
-    [HttpDelete("/api/questions/{id}", Name = "DeleteQuestion")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
 }
