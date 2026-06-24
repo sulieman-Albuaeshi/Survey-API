@@ -19,7 +19,6 @@ public class CreateSurveyDto
     public bool IsAnonymous { get; set; }
     public string Status { get; set; } = null!;
 
-    // TODO the userId should be taken from the token and not from the request body
     public string userId { get; set; } = string.Empty;
     public List<CreateQuestionDto> Questions { get; set; } = new List<CreateQuestionDto>();
 }

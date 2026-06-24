@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace Repository.Models;
 
-public enum enQuestionType : byte
+public enum enQuestionType 
 {
     Text = 1,
     Radio = 2,
@@ -39,4 +39,31 @@ public partial class Question
 
     public virtual ICollection<Choice> Choices { get; set; } = new List<Choice>();
     public virtual Survey Survey { get; set; } = null!;
+
+    private bool IsValidateQuestionType() => Enum.IsDefined(typeof(enQuestionType), QuestionTypeId);
+
+    private bool IsValidateChoices()
+    {
+        if (QuestionTypeEnum == enQuestionType.Radio || QuestionTypeEnum == enQuestionType.Checkbox || QuestionTypeEnum == enQuestionType.Rank)
+        {
+            if (Choices == null || !Choices.Any())
+                throw new ArgumentException("Question must have choices.");
+        }
+        else if (QuestionTypeEnum == enQuestionType.Text)
+        {
+            if (Choices != null && Choices.Any())
+                throw new ArgumentException("Text question must not have choices.");
+        }
+        return true;
+    }
+
+    private bool IsValidateQuestionText() => !string.IsNullOrWhiteSpace(QuestionText);
+   
+    private bool IsValidateOrderIndex() => OrderIndex > 0;
+
+    public bool IsValid()
+    {
+        return IsValidateQuestionType() && IsValidateChoices() && IsValidateQuestionText();
+    }
+
 }

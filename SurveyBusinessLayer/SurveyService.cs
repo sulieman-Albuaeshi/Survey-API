@@ -84,7 +84,7 @@ public class SurveyService : ISurveyService
             {
                 QuestionText = q.QuestionText,
                 IsRequired = q.IsRequired,
-                QuestionTypeId = (int)Enum.Parse<enQuestionType>(q.QuestionType),
+                QuestionTypeEnum = Enum.Parse<enQuestionType>(q.QuestionType),
                 Choices = q.Choices.Select(c => new Choice
                 {
                     ChoiceText = c.ChoiceText,
@@ -94,8 +94,17 @@ public class SurveyService : ISurveyService
 
         };
 
-        //ValidateSurveyArgument(SurveydetailsDto);
-        
+        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
+            throw new ArgumentException("Survey title is required.");
+
+        foreach (var question in MapedSurvey.Questions)
+        {
+            if (!question.IsValid())
+            {
+                throw new ArgumentException("Invalid question data.");
+            }
+        }
+
         var createdSurvey = await _surveyRepository.CreateSurveyAsync(MapedSurvey);
 
         if (createdSurvey == null)
