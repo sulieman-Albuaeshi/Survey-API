@@ -183,6 +183,17 @@ public class SurveyService : ISurveyService
 
         // TODO : Check if the question have repeted choices and throw exception if so
 
+        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
+            throw new ArgumentException("Survey title is required.");
+
+        foreach (var question in MapedSurvey.Questions)
+        {
+            if (!question.IsValid())
+            {
+                throw new ArgumentException("Invalid question data.");
+            }
+        }
+
         var createdSurvey = await _surveyRepository.UpdateSurveyAsync(MapedSurvey);
 
         if (createdSurvey == null)
