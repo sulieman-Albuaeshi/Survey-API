@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using Repository.Interface;
 using Repository.Models;
@@ -44,34 +43,68 @@ public class ResponseService : IResponseService
         return responseDtos;
     }
 
-    public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId)
+    public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId, int pageSize, int pageNumber)
     {
-        if (surveyId == 0)
-            throw new ArgumentException("Survey ID must be a non-zero value.", nameof(surveyId));
+        if (surveyId <= 0)
+            throw new ArgumentException("Survey ID must be a positive integer.", nameof(surveyId));
         
-        var responses = await _responseRepository.GetResponsesBySurveyIdAsync(surveyId);
+        var responses = await _responseRepository.GetResponsesBySurveyIdAsync(surveyId, pageSize, pageNumber);
         
         if(responses.Count == 0)
             throw new KeyNotFoundException($"No responses found for survey ID {surveyId}.");
 
-        throw new NotImplementedException("still in refactoring");
+        var responseDtos = responses.Select(r => new ResponseDto
+        {
+            ResponseId = r.Id,
+            Title = r.Survey.Title,
+            SubmittedAt = r.SubmittedAt,
+            Answers = r.Answers.Select(a => new AnswerQuestionDto
+            {
+                Id = a.Id,
+                QuestionText = a.Question.QuestionText,
+                AnswerType = a.Question.QuestionTypeEnum.ToString(),
+                AnswerValue = a.AnswerValue,
+                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
+                {
+                    ChoiceId = s.ChoiceId,
+                    RankOrder = s.RankOrder
+                }).ToList() ?? new List<ChoiceRankingDto>()
+            }).ToList()
+        }).ToList();
+
+        return responseDtos;
     }
     
-    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId)
+    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber)
     {
         if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentException("User ID must be a non-empty value.", nameof(userId));
-        
-        int userid = int.Parse(userId);
-        if(userid <= 0)
-            throw new ArgumentException("user ID not found", nameof(userId));
-        
-        var responses = await _responseRepository.GetResponsesByUserIdAsync(userId);
+               
+        var responses = await _responseRepository.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
         
         if(responses.Count == 0)
             throw new KeyNotFoundException($"No responses found for user ID {userId}.");
 
-        throw new NotImplementedException("still in refactoring");
+        var responseDtos = responses.Select(r => new ResponseDto
+        {
+            ResponseId = r.Id,
+            Title = r.Survey.Title,
+            SubmittedAt = r.SubmittedAt,
+            Answers = r.Answers.Select(a => new AnswerQuestionDto
+            {
+                Id = a.Id,
+                QuestionText = a.Question.QuestionText,
+                AnswerType = a.Question.QuestionTypeEnum.ToString(),
+                AnswerValue = a.AnswerValue,
+                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
+                {
+                    ChoiceId = s.ChoiceId,
+                    RankOrder = s.RankOrder
+                }).ToList() ?? new List<ChoiceRankingDto>()
+            }).ToList()
+        }).ToList();
+
+        return responseDtos;
 
     }
 
@@ -84,8 +117,27 @@ public class ResponseService : IResponseService
         
         if(response == null)
             throw new KeyNotFoundException($"No response found with ID {responseId}.");
-        
-                throw new NotImplementedException("still in refactoring");
+
+        var responseDtos = new ResponseDto
+        {
+            ResponseId = response.Id,
+            Title = response.Survey.Title,
+            SubmittedAt = response.SubmittedAt,
+            Answers = response.Answers.Select(a => new AnswerQuestionDto
+            {
+                Id = a.Id,
+                QuestionText = a.Question.QuestionText,
+                AnswerType = a.Question.QuestionTypeEnum.ToString(),
+                AnswerValue = a.AnswerValue,
+                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
+                {
+                    ChoiceId = s.ChoiceId,
+                    RankOrder = s.RankOrder
+                }).ToList() ?? new List<ChoiceRankingDto>()
+            }).ToList()
+        };
+
+        return responseDtos;
 
     }
     
@@ -163,13 +215,5 @@ public class ResponseService : IResponseService
     public async Task<int> GetResponsesCountAsync()
     {
         throw new NotImplementedException();
-    }
-
-    public async Task<int> DeleteResponsesAsync(int surveyId)
-    {
-        if (surveyId <= 0)
-            throw new ArgumentException("Survey ID must be a positive integer.", nameof(surveyId));
-        
-        return await _responseRepository.DeleteResponseAsync(surveyId);
     }
 }

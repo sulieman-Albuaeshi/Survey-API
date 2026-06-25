@@ -2,7 +2,6 @@
 using Repository.Models;
 using Repository.Interface;
 using Repository.Data;
-using Microsoft.Data.SqlClient.DataClassification;
 namespace Repository
 {
     public class ResponseRepository : IResponseRepository
@@ -29,7 +28,6 @@ namespace Repository
             return _context.Responses
                 .Include(r => r.Answers)
                     .ThenInclude(a => a.AnswerSelections)
-                    //.ThenInclude(an => an.Choice)
                 .Include(r => r.Survey)
                     .ThenInclude(a => a.Questions)
                 .OrderByDescending(r => r.Id)
@@ -38,19 +36,57 @@ namespace Repository
                 .ToListAsync();
         }
 
-        public Task<Response> GetResponseByIdAsync(int responseId)
+        public async Task<Response> GetResponseByIdAsync(int responseId)
         {
-            throw new NotImplementedException();
+            var response = await _context.Responses
+                .Include(r => r.Answers)
+                    .ThenInclude(a => a.AnswerSelections)
+                .Include(r => r.Survey)
+                    .ThenInclude(s => s.Questions)
+                .FirstOrDefaultAsync(r => r.Id == responseId);
+            if (response == null)
+            {
+                throw new KeyNotFoundException($"Response with ID {responseId} not found.");
+            }
+            return response;
         }
 
-        public Task<List<Response>> GetResponsesBySurveyIdAsync(int surveyId)
+        public async Task<List<Response>> GetResponsesBySurveyIdAsync(int surveyId, int pageSize, int pageNumber)
         {
-            throw new NotImplementedException();
+            int ToSkip = (pageNumber - 1) * pageSize;
+            var response = await _context.Responses
+                            .Include(r => r.Answers)
+                                .ThenInclude(a => a.AnswerSelections)
+                            .Include(r => r.Survey)
+                                .ThenInclude(s => s.Questions)
+                            .Where(r => r.SurveyId == surveyId)
+                            .Skip(ToSkip)
+                            .Take(pageSize)
+                            .ToListAsync();
+            if (response == null)
+            {
+                throw new KeyNotFoundException($"Response with survey ID : {surveyId} not found.");
+            }
+            return response;
         }
 
-        public Task<List<Response>> GetResponsesByUserIdAsync(string userId)
+        public async Task<List<Response>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber)
         {
-            throw new NotImplementedException();
+            int ToSkip = (pageNumber - 1) * pageSize;
+            var response = await _context.Responses
+                            .Include(r => r.Answers)
+                                .ThenInclude(a => a.AnswerSelections)
+                            .Include(r => r.Survey)
+                                .ThenInclude(s => s.Questions)
+                            .Where(r => r.UserId == userId)
+                            .Skip(ToSkip)
+                            .Take(pageSize)
+                            .ToListAsync();
+            if (response == null)
+            {
+                throw new KeyNotFoundException($"Response with User ID : {userId} not found.");
+            }
+            return response;
         }
 
         public async Task<ResponseValidationDataDto?> GetValidationDataForSurveyAsync(int surveyId)

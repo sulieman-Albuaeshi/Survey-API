@@ -44,11 +44,11 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public  async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesBySurveyId(int surveyId)
+    public  async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesBySurveyId(int surveyId, int pageSize, int pageNumber)
     {
         try
         {
-            var responses = await _responseService.GetResponsesBySurveyIdAsync(surveyId);
+            var responses = await _responseService.GetResponsesBySurveyIdAsync(surveyId, pageSize, pageNumber);
             
             if(responses == null || !responses.Any())
                 return NotFound($"No responses found for survey ID {surveyId}.");
@@ -78,11 +78,11 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesByUserId(string userId)
+    public async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesByUserId(string userId, int pageSize, int pageNumber)
     {
         try
         {
-            var responses = await _responseService.GetResponsesByUserIdAsync(userId);
+            var responses = await _responseService.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
             
             if(responses == null || !responses.Any())
                 return NotFound($"No responses found for user ID {userId}.");

@@ -6,11 +6,10 @@ public interface IResponseService
 {
     public Task<List<ResponseDto>> GetAllResponsesDetailsAsync(int pageSize, int pageNumber);
     
-    public Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId);
+    public Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId, int pageSize, int pageNumber);
     
-    public Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId);
+    public Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber);
     public Task<ResponseDto> GetResponseByIdAsync(int responseId);
     public Task<int> GetResponsesCountAsync();
-    public Task<int> DeleteResponsesAsync(int surveyId);
     public Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto responseCreateDto);
 }   
