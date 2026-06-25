@@ -89,6 +89,11 @@ namespace Repository
             return response;
         }
 
+        public async Task<int> GetResponsesCountAsync(int surveyId)
+        {
+            return await _context.Responses.CountAsync(r => r.SurveyId == surveyId);
+        }
+
         public async Task<ResponseValidationDataDto?> GetValidationDataForSurveyAsync(int surveyId)
         {
             return await _context.Surveys

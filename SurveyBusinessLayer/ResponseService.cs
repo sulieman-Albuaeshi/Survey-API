@@ -212,8 +212,10 @@ public class ResponseService : IResponseService
         return responseDetailsDto;
     }
 
-    public async Task<int> GetResponsesCountAsync()
+    public async Task<int> GetResponsesCountAsync(int surveyId)
     {
-        throw new NotImplementedException();
+        var count = await _responseRepository.GetResponsesCountAsync(surveyId);
+        if(count == 0) throw new InvalidOperationException("No responses found for the specified survey.");
+            return count;
     }
 }

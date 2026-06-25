@@ -10,4 +10,5 @@ public interface IResponseRepository
      public Task<int> DeleteResponseAsync(int responseId);
      public Task<Response> SubmitResponseAsync(Response response);
     public Task<ResponseValidationDataDto?> GetValidationDataForSurveyAsync(int surveyId);
+    public Task<int> GetResponsesCountAsync(int surveyId);
 }

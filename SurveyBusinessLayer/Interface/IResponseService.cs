@@ -10,6 +10,6 @@ public interface IResponseService
     
     public Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber);
     public Task<ResponseDto> GetResponseByIdAsync(int responseId);
-    public Task<int> GetResponsesCountAsync();
+    public Task<int> GetResponsesCountAsync(int surveyId);
     public Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto responseCreateDto);
 }   

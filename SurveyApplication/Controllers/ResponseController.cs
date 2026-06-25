@@ -173,23 +173,19 @@ public class ResponseController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
         }
     }
-    
-    
-    
-    [HttpDelete("survey/{surveyId}", Name = "DeleteResponsesBySurvey")]
+
+    [HttpGet("survey/{surveyId}/Count", Name = "GetResponsesCount")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> DeleteResponsesBySurveyId(int surveyId)
+    public async Task<ActionResult> ResponseCountBySurveyId(int surveyId)
     {
         try
         {
-            var deletedCount = await _responseService.DeleteResponsesAsync(surveyId);
-            if(deletedCount == 0)
-                NotFound($"No responses found for survey ID {surveyId} to delete.");
-            return Ok($"number of  responses deleted: {deletedCount}");
+            var count = await _responseService.GetResponsesCountAsync(surveyId);
+            return Ok(new { SurveyId = surveyId, ResponseCount = count });
         }
-        catch (ArgumentException ex)
+        catch(InvalidOperationException ex)
         {
             // Log the exception (not implemented here)
             return BadRequest(ex.Message);
@@ -200,4 +196,5 @@ public class ResponseController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
         }
     }
+
 }
