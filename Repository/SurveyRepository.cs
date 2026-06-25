@@ -14,7 +14,7 @@ namespace Repository
             _context = context;
         }
 
-        public async Task<List<Survey>> GetAllSurveysAsync(int pageNumber, int pageSize)
+        public async Task<List<Survey>> GetAllSurveysAsync(int pageSize, int pageNumber)
         {
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 10 || pageSize > 20) pageSize = 10; 

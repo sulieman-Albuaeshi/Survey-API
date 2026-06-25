@@ -140,6 +140,7 @@ public class SurveyService : ISurveyService
 
     public async Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto SurveydetailsDto)
     {
+        // TODO : need to check if the same user trying to update the same survey
         var MapedSurvey = new Survey
         {
             Id = SurveydetailsDto.Id,
@@ -167,7 +168,20 @@ public class SurveyService : ISurveyService
         
         if(MapedSurvey.Id <= 0)
             throw new ArgumentException("Invalid survey ID.");
-        
+
+
+        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
+            throw new ArgumentException("Survey title is required.");
+
+        foreach (var question in MapedSurvey.Questions)
+        {
+            if (!question.IsValid())
+            {
+                throw new ArgumentException("Invalid question data.");
+            }
+        }
+
+        // TODO : Check if the question have repeted choices and throw exception if so
 
         var createdSurvey = await _surveyRepository.UpdateSurveyAsync(MapedSurvey);
 

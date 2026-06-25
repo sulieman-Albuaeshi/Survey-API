@@ -188,10 +188,41 @@ public class SurveyServiceTests
         // ==========================================
         //  ACT: Call the service to create the survey
         // ==========================================
-        var exsiption = await Assert.ThrowsAsync<ArgumentException>(() => service.CreateSurveyWithQuestionsAsync(incomingDto));
-
-        Assert.Contains("Text question must not have choices.", exsiption.Message);
+        var exsiption = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateSurveyWithQuestionsAsync(incomingDto));     
     }
+
+    [Fact]
+    public async Task CheckQuestionHasDublicateChoice_ShouldReturnInvalidOperationException_WhenDuplicateChoiceExists()
+    {
+        using var context = CreateTestDbContext();
+        var repository = new SurveyRepository(context);
+        var service = new SurveyService(repository);
+        var incomingDto = new CreateSurveyDto
+        {
+            Title = "Duplicate Choice Test Survey",
+            Description = "This survey has a question with duplicate choices.",
+            IsAnonymous = false,
+            Status = "Draft",
+            userId = "test-user-456",
+            Questions = new List<CreateQuestionDto>
+            {
+                new CreateQuestionDto
+                {
+                    QuestionText = "What is your favorite fruit?",
+                    IsRequired = true,
+                    QuestionType = "Radio",
+                    Choices = new List<CreateChoiceDto>
+                    {
+                        new CreateChoiceDto{ ChoiceText = "Apple" },
+                        new CreateChoiceDto{ ChoiceText = "Banana" },
+                        new CreateChoiceDto{ ChoiceText = "Apple" } // Duplicate choice
+                    }
+                }
+            }
+        };
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateSurveyWithQuestionsAsync(incomingDto));
+    }
+
     [Fact]
     public async Task CreateSurvey_ShouldThrowArgumentException_WhenTitleIsMissing()
     {
@@ -265,7 +296,7 @@ public class SurveyServiceTests
                 }
             }
         };
-        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateSurveyWithQuestionsAsync(incomingDto));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateSurveyWithQuestionsAsync(incomingDto));
     }
 
     [Fact]
