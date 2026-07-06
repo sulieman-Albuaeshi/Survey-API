@@ -2,6 +2,7 @@ using SurveyBusinessLayer.Interface;
 using Repository.Interface;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
+using SurveyBusinessLayer.Mapper;
 
 namespace SurveyBusinessLayer;
 
@@ -23,17 +24,7 @@ public class SurveyService : ISurveyService
         if (surveyList == null || !surveyList.Any())
             throw new KeyNotFoundException("Survey not found.");
 
-        List<SurveyDto> dto = surveyList.Select(s => new SurveyDto
-        {
-            Id = s.Id,
-            Title = s.Title,
-            Description = s.Description,
-            IsAnonymous = s.IsAnonymous,
-            QuestionCount = s.QuestionCount,
-            Status = s.Status.ToString(),
-            CreatedAt = s.CreatedAt
-        }).ToList();
-
+        List<SurveyDto> dto = surveyList.Select(s => s.ToDto()).ToList();
         return dto;
     }
     
@@ -43,58 +34,16 @@ public class SurveyService : ISurveyService
         if (survey == null)
             throw new KeyNotFoundException("Survey not found.");
 
-        var surveyDtoDTOs = new SurveyDetailsDto
-        {
-            Id = survey.Id,
-            Title = survey.Title,
-            Description = survey.Description,
-            IsAnonymous = survey.IsAnonymous,
-            QuestionCount = survey.QuestionCount,
-            Status = survey.Status.ToString(),
-            CreatedAt = survey.CreatedAt,
-            Questions = survey.Questions.Select(q => new QuestionDetailsDto
-            {
-                Id = q.Id,
-                QuestionText = q.QuestionText,
-                IsRequired = q.IsRequired,
-                OrderIndex = q.OrderIndex,
-                QuestionTypeName = q.QuestionTypeEnum.ToString(),
-                Choices = q.Choices.Select(c => new ChoiceDto
-                {
-                    Id = c.Id,
-                    ChoiceText = c.ChoiceText,
-                    OrderIndex = c.OrderIndex
-                }).ToList()
-            }).ToList()
-        };
-
-        return surveyDtoDTOs;
+        return survey.ToDetailsDto();
     }
-    
-    public async Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto SurveydetailsDto)
+
+    public async Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto dto)
     {
 
-        var MapedSurvey = new Survey
-        {
-            Title = SurveydetailsDto.Title,
-            Description = SurveydetailsDto.Description,
-            IsAnonymous = SurveydetailsDto.IsAnonymous,
-            Status = Enum.Parse<SurveyStatus>(SurveydetailsDto.Status),
-            Questions = SurveydetailsDto.Questions.Select(q => new Question
-            {
-                QuestionText = q.QuestionText,
-                IsRequired = q.IsRequired,
-                QuestionTypeEnum = Enum.Parse<enQuestionType>(q.QuestionType),
-                Choices = q.Choices.Select(c => new Choice
-                {
-                    ChoiceText = c.ChoiceText,
-                }).ToList()
-            }).ToList(),
-            UserId = SurveydetailsDto.userId,
+        var MapedSurvey = dto.ToDominEntity();
 
-        };
 
-        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
+        if (string.IsNullOrEmpty(dto.Title))
             throw new ArgumentException("Survey title is required.");
 
         foreach (var question in MapedSurvey.Questions)
@@ -110,58 +59,13 @@ public class SurveyService : ISurveyService
         if (createdSurvey == null)
             throw new KeyNotFoundException("Survey was not created.");
 
-        var createdSurveyDto = new SurveyDetailsDto
-        {
-            Id = createdSurvey.Id,
-            Title = createdSurvey.Title,
-            Description = createdSurvey.Description,
-            IsAnonymous = createdSurvey.IsAnonymous,
-            QuestionCount = createdSurvey.QuestionCount,
-            Status = createdSurvey.Status.ToString(),
-            CreatedAt = createdSurvey.CreatedAt,
-            Questions = createdSurvey.Questions.Select(q => new QuestionDetailsDto
-            {
-                Id = q.Id,
-                QuestionText = q.QuestionText,
-                IsRequired = q.IsRequired,
-                OrderIndex = q.OrderIndex,
-                QuestionTypeName = q.QuestionTypeEnum.ToString(),
-                Choices = q.Choices.Select(c => new ChoiceDto
-                {
-                    Id = c.Id,
-                    ChoiceText = c.ChoiceText,
-                    OrderIndex = c.OrderIndex
-                }).ToList()
-            }).ToList()
-        };
-
-        return createdSurveyDto;
+        return createdSurvey.ToDetailsDto();
     }
 
-    public async Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto SurveydetailsDto)
+    public async Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto dto)
     {
         // TODO : need to check if the same user trying to update the same survey
-        var MapedSurvey = new Survey
-        {
-            Id = SurveydetailsDto.Id,
-            Title = SurveydetailsDto.Title,
-            Description = SurveydetailsDto.Description,
-            IsAnonymous = SurveydetailsDto.IsAnonymous,
-            Status = Enum.Parse<SurveyStatus>(SurveydetailsDto.Status),
-            QuestionCount = SurveydetailsDto.Questions.Count(),
-            Questions = SurveydetailsDto.Questions.Select(q => new Question
-            {
-                Id = q.Id,
-                QuestionText = q.QuestionText,
-                IsRequired = q.IsRequired,
-                QuestionTypeId = (int)Enum.Parse<enQuestionType>(q.QuestionType),
-                Choices = q.Choices.Select(c => new Choice
-                {
-                    Id = c.Id,
-                    ChoiceText = c.ChoiceText,
-                }).ToList()
-            }).ToList()
-        };
+        var MapedSurvey = dto.ToDominEntity();
 
         if (MapedSurvey.Status == SurveyStatus.Published)
             throw new InvalidOperationException("Cannot update a published survey.");
@@ -170,29 +74,7 @@ public class SurveyService : ISurveyService
             throw new ArgumentException("Invalid survey ID.");
 
 
-        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
-            throw new ArgumentException("Survey title is required.");
-
-        foreach (var question in MapedSurvey.Questions)
-        {
-            if (!question.IsValid())
-            {
-                throw new ArgumentException("Invalid question data.");
-            }
-        }
-
-        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
-            throw new ArgumentException("Survey title is required.");
-
-        foreach (var question in MapedSurvey.Questions)
-        {
-            if (!question.IsValid())
-            {
-                throw new ArgumentException("Invalid question data.");
-            }
-        }
-
-        if (string.IsNullOrEmpty(SurveydetailsDto.Title))
+        if (string.IsNullOrEmpty(dto.Title))
             throw new ArgumentException("Survey title is required.");
 
         foreach (var question in MapedSurvey.Questions)
@@ -208,28 +90,7 @@ public class SurveyService : ISurveyService
         if (createdSurvey == null)
             throw new KeyNotFoundException("Survey was not updated.");
 
-        var UpdatedSurveyDto = new SurveyDetailsDto
-        {
-            Id = createdSurvey.Id,
-            Title = createdSurvey.Title,
-            Description = createdSurvey.Description,
-            IsAnonymous = createdSurvey.IsAnonymous,
-            Status = createdSurvey.Status.ToString(),
-            Questions = createdSurvey.Questions.Select(q => new QuestionDetailsDto
-            {
-                Id = q.Id,
-                QuestionText = q.QuestionText,
-                IsRequired = q.IsRequired,
-                QuestionTypeName = q.QuestionTypeEnum.ToString(),
-                Choices = q.Choices.Select(c => new ChoiceDto
-                {
-                    Id = c.Id,
-                    ChoiceText = c.ChoiceText,
-                }).ToList()
-            }).ToList()
-        };
-
-        return UpdatedSurveyDto;
+        return createdSurvey.ToDetailsDto();
     }
     
     public async Task<bool> DeleteSurveyAsync(int surveyId)
