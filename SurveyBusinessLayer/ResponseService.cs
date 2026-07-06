@@ -3,6 +3,7 @@ using Repository.Interface;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
 using SurveyBusinessLayer.Interface;
+using SurveyBusinessLayer.Mapper;
 
 namespace SurveyBusinessLayer;
 
@@ -21,24 +22,7 @@ public class ResponseService : IResponseService
 
         var response = await _responseRepository.GetAllResponsesDetailsAsync(pageSize, pageNumber);
         
-        var responseDtos = response.Select(r => new ResponseDto
-        {
-            ResponseId = r.Id,
-            Title = r.Survey.Title,
-            SubmittedAt = r.SubmittedAt,
-            Answers = r.Answers.Select(a => new AnswerQuestionDto
-            {
-                Id = a.Id,
-                QuestionText = a.Question.QuestionText,
-                AnswerType = a.Question.QuestionTypeEnum.ToString(),
-                AnswerValue = a.AnswerValue,
-                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
-                {
-                    ChoiceId = s.ChoiceId,
-                    RankOrder = s.RankOrder
-                }).ToList() ?? new List<ChoiceRankingDto>()
-            }).ToList()
-        }).ToList();
+        var responseDtos = response.Select(r => r.ToDto()).ToList();
 
         return responseDtos;
     }
@@ -53,24 +37,7 @@ public class ResponseService : IResponseService
         if(responses.Count == 0)
             throw new KeyNotFoundException($"No responses found for survey ID {surveyId}.");
 
-        var responseDtos = responses.Select(r => new ResponseDto
-        {
-            ResponseId = r.Id,
-            Title = r.Survey.Title,
-            SubmittedAt = r.SubmittedAt,
-            Answers = r.Answers.Select(a => new AnswerQuestionDto
-            {
-                Id = a.Id,
-                QuestionText = a.Question.QuestionText,
-                AnswerType = a.Question.QuestionTypeEnum.ToString(),
-                AnswerValue = a.AnswerValue,
-                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
-                {
-                    ChoiceId = s.ChoiceId,
-                    RankOrder = s.RankOrder
-                }).ToList() ?? new List<ChoiceRankingDto>()
-            }).ToList()
-        }).ToList();
+        var responseDtos = responses.Select(r => r.ToDto()).ToList();
 
         return responseDtos;
     }
@@ -85,24 +52,7 @@ public class ResponseService : IResponseService
         if(responses.Count == 0)
             throw new KeyNotFoundException($"No responses found for user ID {userId}.");
 
-        var responseDtos = responses.Select(r => new ResponseDto
-        {
-            ResponseId = r.Id,
-            Title = r.Survey.Title,
-            SubmittedAt = r.SubmittedAt,
-            Answers = r.Answers.Select(a => new AnswerQuestionDto
-            {
-                Id = a.Id,
-                QuestionText = a.Question.QuestionText,
-                AnswerType = a.Question.QuestionTypeEnum.ToString(),
-                AnswerValue = a.AnswerValue,
-                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
-                {
-                    ChoiceId = s.ChoiceId,
-                    RankOrder = s.RankOrder
-                }).ToList() ?? new List<ChoiceRankingDto>()
-            }).ToList()
-        }).ToList();
+        var responseDtos = responses.Select(r => r.ToDto()).ToList();
 
         return responseDtos;
 
@@ -118,98 +68,49 @@ public class ResponseService : IResponseService
         if(response == null)
             throw new KeyNotFoundException($"No response found with ID {responseId}.");
 
-        var responseDtos = new ResponseDto
-        {
-            ResponseId = response.Id,
-            Title = response.Survey.Title,
-            SubmittedAt = response.SubmittedAt,
-            Answers = response.Answers.Select(a => new AnswerQuestionDto
-            {
-                Id = a.Id,
-                QuestionText = a.Question.QuestionText,
-                AnswerType = a.Question.QuestionTypeEnum.ToString(),
-                AnswerValue = a.AnswerValue,
-                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
-                {
-                    ChoiceId = s.ChoiceId,
-                    RankOrder = s.RankOrder
-                }).ToList() ?? new List<ChoiceRankingDto>()
-            }).ToList()
-        };
-
-        return responseDtos;
-
+        return response.ToDto();
     }
     
-    public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto responseCreateDto)
+    public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto dto)
     {
         // survey validation
-        if (responseCreateDto == null)
-            throw new ArgumentNullException(nameof(responseCreateDto), "Response data cannot be null.");
+        if (dto == null)
+            throw new ArgumentNullException(nameof(dto), "Response data cannot be null.");
 
-        if(responseCreateDto.Answers == null || !responseCreateDto.Answers.Any())
+        if(dto.Answers == null || !dto.Answers.Any())
             throw new InvalidOperationException("required questions must be answered");
 
-        var validationData = await _responseRepository.GetValidationDataForSurveyAsync(responseCreateDto.SurveyId);
+        var validationData = await _responseRepository.GetValidationDataForSurveyAsync(dto.SurveyId);
 
         if (validationData?.IsAnonymous == null)
-            throw new KeyNotFoundException($"Survey with ID {responseCreateDto.SurveyId} not found.");
+            throw new KeyNotFoundException($"Survey with ID {dto.SurveyId} not found.");
 
-        if ( validationData.IsAnonymous  == false && string.IsNullOrEmpty(responseCreateDto.UserId))
+        if ( validationData.IsAnonymous  == false && string.IsNullOrEmpty(dto.UserId))
             throw new InvalidOperationException("Survey is not anonymous, userId must be provided.");
 
         var missingRequiredIds = validationData.RequiredQuestionIds
-            .Where(id => !responseCreateDto.Answers.Select(a => a.QuestionId)
+            .Where(id => !dto.Answers.Select(a => a.QuestionId)
             .Contains(id))
             .Count();
 
         if (missingRequiredIds != 0)
             throw new InvalidOperationException("All required questions must be answered.");
 
-        var submittedChoiceIds = responseCreateDto.Answers
+        var submittedChoiceIds = dto.Answers
             .SelectMany(a => a.RankedChoices?.Select(s => s.ChoiceId) ?? Enumerable.Empty<int>())
             .ToHashSet();
 
         if (!submittedChoiceIds.All(id => validationData.ValidChoiceIds.Contains(id)))
             throw new InvalidOperationException("One or more selected choices are invalid.");
 
-        var response = new Response
-        {
-            SurveyId = responseCreateDto.SurveyId,
-            UserId = responseCreateDto.UserId,
-            SubmittedAt = responseCreateDto.SubmittedAt,
-            Answers = responseCreateDto.Answers.Select(a => new Answer
-            {
-                QuestionId = a.QuestionId,
-                AnswerType = a.AnswerType,
-                AnswerValue = a.AnswerValue,
-                AnswerSelections = a.RankedChoices?.Select(s => new AnswerSelection
-                {
-                    ChoiceId = s.ChoiceId,
-                    RankOrder = s.RankOrder
-                }).ToList() ?? new List<AnswerSelection>()
-            }).ToList()
-        };
+        if (string.IsNullOrWhiteSpace(dto.UserId))
+            dto.UserId = null;
+
+        var response = dto.ToDominEntity();
+
         var createdResponse = await _responseRepository.SubmitResponseAsync(response);
 
-        var responseDetailsDto = new ResponseDetailsDto
-        {
-            ResponseId = createdResponse.Id,
-            Title = createdResponse.Survey.Title,
-            SubmittedAt = createdResponse.SubmittedAt,
-            Answers = createdResponse.Answers.Select(a => new AnswerQuestionDto
-            {
-                QuestionText= a.Question.QuestionText,
-                AnswerType = a.Question.QuestionTypeEnum.ToString(),
-                AnswerValue = a.AnswerValue,
-                RankedChoices = a.AnswerSelections?.Select(s => new ChoiceRankingDto
-                {
-                    ChoiceId = s.ChoiceId,
-                    RankOrder = s.RankOrder
-                }).ToList() ?? new List<ChoiceRankingDto>()
-            }).ToList()
-        };
-        return responseDetailsDto;
+        return createdResponse.ToDetailsDto();
     }
 
     public async Task<int> GetResponsesCountAsync(int surveyId)
