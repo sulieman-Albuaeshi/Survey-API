@@ -1,8 +1,12 @@
 namespace SurveyBusinessLayer.DTOs;
-using System.Text.Json;
-using Repository.Models;
 
-public class UpdateQuestionDto
+public interface IQuestionBaseDto
+{
+    string QuestionText { get; set; }
+    bool IsRequired { get; set; }
+    string QuestionType { get; set; }
+}
+public class UpdateQuestionDto : IQuestionBaseDto
 {
     public int Id { get; set; }
     public string QuestionText { get; set; } = null!;
@@ -22,7 +26,7 @@ public class QuestionDetailsDto
     public List<ChoiceDto> Choices { get; set; } = new();
 }
 
-public class CreateQuestionDto
+public class CreateQuestionDto : IQuestionBaseDto
 {
     public string QuestionText { get; set; } = null!;
     public bool IsRequired { get; set; }

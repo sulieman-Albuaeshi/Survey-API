@@ -1,6 +1,8 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using SurveyBusinessLayer.Interface;
+using SurveyApplication.Validation;
 using SurveyBusinessLayer.DTOs;
+using SurveyBusinessLayer.Interface;
 
 
 namespace SurveyApplication.Controllers;
@@ -10,9 +12,13 @@ namespace SurveyApplication.Controllers;
 public class SurveyController : ControllerBase
 {
     private readonly ISurveyService _surveyService;
-    public SurveyController(ISurveyService surveyService)
+    private readonly IValidator<CreateSurveyDto> _createValidator;
+    private readonly IValidator<UpdaatSurveyDto> _updateValidator;
+    public SurveyController(ISurveyService surveyService, IValidator<CreateSurveyDto> CreateValidator, IValidator<UpdaatSurveyDto> UpdateValidator)
     {
         _surveyService = surveyService;
+        _createValidator = CreateValidator;
+        _updateValidator = UpdateValidator;
     }
     
     [HttpGet("All", Name = "GetAllSurveys")]
@@ -20,17 +26,11 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<SurveyDto>>> GetAllSurveys(int pageSize, int pageNumber)
     {
-        try
-        {
-            var surveyList = await _surveyService.GetAllSurveysAsync(pageSize, pageNumber);
+        if(pageSize <= 0 || pageNumber <= 0) return BadRequest("Page size and page number must be greater than zero");
+
+        var surveyList = await _surveyService.GetAllSurveysAsync(pageSize, pageNumber);
             
-            return Ok(surveyList);
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        
+        return Ok(surveyList);        
     }
     
     [HttpGet("{id}", Name = "GetSurveyById")]
@@ -42,22 +42,12 @@ public class SurveyController : ControllerBase
     // need to return SurveyDetailsDto but for now we return surveyDto
     public async Task<ActionResult<SurveyDto>> GetSurveyByIdAsync(int id)
     {
-        try
-        {
-            var survey = await _surveyService.GetSurveyByIdAsync(id);
-            //var (questionList, choiceList) = await _surveyService.GetQuestionsForSurveyAsync(id);
-            //var surveyDetailsDto = SurveyMapper.ToSurveyDetailsDto(survey, questionList, choiceList);
-            return Ok(survey);
+        if(id <= 0) return BadRequest("Invalid Survey ID");
 
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        var survey = await _surveyService.GetSurveyByIdAsync(id);
+        //var (questionList, choiceList) = await _surveyService.GetQuestionsForSurveyAsync(id);
+        //var surveyDetailsDto = SurveyMapper.ToSurveyDetailsDto(survey, questionList, choiceList);
+        return Ok(survey);
     }
     
     [HttpPost("Create", Name = "CreateSurvey")]
@@ -66,25 +56,21 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SurveyDetailsDto>> CreateSurvey(CreateSurveyDto surveyDto)
     {
-        try
+        var validationResult = _createValidator.Validate(surveyDto);
+
+        if (!validationResult.IsValid)
         {
-            // TODO : Get userId from the authenticated user context instead of hardcoding it
-            surveyDto.userId = "Test";
-            var  survey = await _surveyService.CreateSurveyWithQuestionsAsync(surveyDto);
-            if (survey.Id > 0)
-            {
-                return CreatedAtRoute("GetSurveyById", new { id = survey.Id }, survey);
-            }
-            return BadRequest("Failed to create survey");
+            // Fail Fast: 400 Bad Request if syntax/structure is wrong
+            return BadRequest(validationResult.ToDictionary());
         }
-        catch (ArgumentException e)
+
+        var  survey = await _surveyService.CreateSurveyWithQuestionsAsync(surveyDto);
+        if (survey.Id > 0)
         {
-            return BadRequest(e.Message);
+            return CreatedAtRoute("GetSurveyById", new { id = survey.Id }, survey);
         }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        return BadRequest("Failed to create survey");
+
     }
     
     [HttpPut("{id}", Name = "UpdateSurvey")]
@@ -96,31 +82,23 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, UpdaatSurveyDto dto)
     {
-        try
-        {
-            dto.Id = id;
-            var survey  = await _surveyService.UpdateSurveyWithQuestionsAsync(dto);
+        if(id <= 0) return BadRequest("Invalid Survey ID");
+        dto.Id = id;
 
-            if (survey == null) return BadRequest("Failed to update survey");
+        var validationResult = _updateValidator.Validate(dto);
 
-            return Ok(survey);
-        }
-        catch (ArgumentException e)
+        if (!validationResult.IsValid)
         {
-            return BadRequest(e.Message);
+            // Fail Fast: 400 Bad Request if syntax/structure is wrong
+            return BadRequest(validationResult.ToDictionary());
         }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (InvalidOperationException e)
-        {
-            return Conflict(e.Message);
-        }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+
+        var survey  = await _surveyService.UpdateSurveyWithQuestionsAsync(dto);
+
+        if (survey == null) return BadRequest("Failed to update survey");
+
+        return Ok(survey);
+
     }
     
     
@@ -131,30 +109,14 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DeleteSurvey(int id)
     {
-        try
-        {
-            var deleted = await _surveyService.DeleteSurveyAsync(id);
-            if (!deleted)
-                return NotFound("Failed to delete survey");
+        if (id <= 0) return BadRequest("Invalid Survey ID");
 
-            return Ok($"Survey with id {id} has been deleted");
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (InvalidOperationException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        var deleted = await _surveyService.DeleteSurveyAsync(id);
+        if (!deleted)
+            return NotFound("Failed to delete survey");
+
+        return Ok($"Survey with id {id} has been deleted");
+
     }
 
 
@@ -163,36 +125,11 @@ public class SurveyController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> ChangeSurveyStatus(int id, SurveyStatusDto status)
     {
-        if(string.IsNullOrEmpty(status.StatusText))
-        {
-            return BadRequest("Status text cannot be null or empty");
-        }
+        var updated = await _surveyService.ChangeSurveyStatusAsync(id, status.StatusText);
 
-        try
-        {
-            var updated = await _surveyService.ChangeSurveyStatusAsync(id, status.StatusText);
+        if (!updated)
+            return NotFound("Failed to update survey status");
 
-            if (!updated)
-                return NotFound("Failed to update survey status");
-
-            return NoContent();
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (InvalidOperationException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
-
+        return NoContent();
     }
 }

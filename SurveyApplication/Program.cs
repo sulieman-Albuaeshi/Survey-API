@@ -5,9 +5,15 @@ using Repository;
 
 using SurveyBusinessLayer.Interface;
 using SurveyBusinessLayer;
+using FluentValidation;
+using SurveyApplication.Validation.Survey;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container
+// For FluentValidation 
+builder.Services.AddValidatorsFromAssemblyContaining<SurveyCreaterDtoValidation>();
+builder.Services.AddValidatorsFromAssemblyContaining<SurveyUpdateDtoValidation>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

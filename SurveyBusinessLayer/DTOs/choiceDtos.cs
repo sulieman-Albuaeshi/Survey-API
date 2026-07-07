@@ -2,6 +2,11 @@ using System.Runtime.CompilerServices;
 
 namespace SurveyBusinessLayer.DTOs;
 
+public interface IChoiceDto
+{
+    string ChoiceText { get; set; }
+}
+
 public class ChoiceDto
 {
     public int Id { get; set; }
@@ -9,11 +14,11 @@ public class ChoiceDto
     public int OrderIndex { get; set; } 
 }
 
-public class CreateChoiceDto
+public class CreateChoiceDto : IChoiceDto
 {
     public string ChoiceText { get; set; } = null!;
 }
-public class updateChoiceDto
+public class updateChoiceDto : IChoiceDto
 {
     public int Id { get; set; }
 
