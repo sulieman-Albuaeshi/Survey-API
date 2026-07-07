@@ -48,9 +48,54 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// 1. Activate the global exception safety net
+app.UseExceptionHandler(exceptionApp =>
+{
+    exceptionApp.Run(async context =>
+    {
+        context.Response.ContentType = "application/json";
 
-// ... before app.UseAuthorization()
-app.UseCors("AllowAll");
+        // 2. Grab the actual error that happened somewhere in the app
+        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var originalError = exceptionFeature?.Error;
+
+        // 3. Inspect what KIND of error it is, and choose the HTTP status code
+        if (originalError is KeyNotFoundException)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            await context.Response.WriteAsJsonAsync(new { error = originalError.Message });
+        }
+        else if (originalError is ArgumentException)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { error = originalError.Message });
+        }
+        else if (originalError is InvalidOperationException)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { error = originalError.Message });
+        }
+        else if (originalError is FluentValidation.ValidationException valEx)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            var errors = valEx.Errors.Select(e => new { e.PropertyName, e.ErrorMessage });
+            await context.Response.WriteAsJsonAsync(new { error = "Validation failed", details = errors });
+        }
+        else if (originalError is Exception)
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { error = originalError.Message });
+        }
+        else
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            await context.Response.WriteAsJsonAsync(new { error = "Something went wrong on our end." });
+        }
+    });
+});
+
+
+
 
 app.UseHttpsRedirection();
 

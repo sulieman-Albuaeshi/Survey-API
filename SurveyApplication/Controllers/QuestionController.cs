@@ -21,24 +21,12 @@ public class QuestionController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<QuestionDetailsDto>>> GetAllQuestionsForSurvey(int surveyId)
     {
-        try
-        {
-            var questionDtos = await _questionService.GetAllQuestionsAsync(surveyId);
+        if(surveyId <= 0 ) return BadRequest("Invalid survey ID");
+        
+        var questionDtos = await _questionService.GetAllQuestionsAsync(surveyId);
             
-            return Ok(questionDtos);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        return Ok(questionDtos);
+   
     }
 
     // The "/" at the beginning ignores the class route completely!
@@ -49,24 +37,12 @@ public class QuestionController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<QuestionDetailsDto>> GetQuestionById(int id)
     {
-        try
-        {
-            var question = await _questionService.GetQuestionByIdAsync(id);
-            if (question == null)
-                return NotFound("Question not found");
-            return Ok(question);
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        if(id <= 0 ) return BadRequest("Invalid question ID");
+
+        var question = await _questionService.GetQuestionByIdAsync(id);
+        if (question == null)
+            return NotFound("Question not found");
+        return Ok(question);
+
     }
 }
