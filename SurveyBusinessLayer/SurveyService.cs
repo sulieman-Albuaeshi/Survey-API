@@ -17,12 +17,10 @@ public class SurveyService : ISurveyService
     
     public async Task<List<SurveyDto>> GetAllSurveysAsync(int pageSize, int pageNumber)
     {
-        if (pageSize <= 0 || pageNumber <= 0)
-            throw new ArgumentException("Page size and page number must be greater than zero.");
-
         var surveyList = await _surveyRepository.GetAllSurveysAsync(pageSize, pageNumber);
+
         if (surveyList == null || !surveyList.Any())
-            throw new KeyNotFoundException("Survey not found.");
+            throw new KeyNotFoundException("No Survey Found.");
 
         List<SurveyDto> dto = surveyList.Select(s => s.ToDto()).ToList();
         return dto;
@@ -39,12 +37,7 @@ public class SurveyService : ISurveyService
 
     public async Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto dto)
     {
-
         var MapedSurvey = dto.ToDominEntity();
-
-
-        if (string.IsNullOrEmpty(dto.Title))
-            throw new ArgumentException("Survey title is required.");
 
         foreach (var question in MapedSurvey.Questions)
         {
@@ -69,13 +62,6 @@ public class SurveyService : ISurveyService
 
         if (MapedSurvey.Status == SurveyStatus.Published)
             throw new InvalidOperationException("Cannot update a published survey.");
-        
-        if(MapedSurvey.Id <= 0)
-            throw new ArgumentException("Invalid survey ID.");
-
-
-        if (string.IsNullOrEmpty(dto.Title))
-            throw new ArgumentException("Survey title is required.");
 
         foreach (var question in MapedSurvey.Questions)
         {
@@ -95,16 +81,12 @@ public class SurveyService : ISurveyService
     
     public async Task<bool> DeleteSurveyAsync(int surveyId)
     {
-        if (surveyId <= 0)
-            throw new ArgumentException("Invalid survey id.");
-
         return await _surveyRepository.DeleteSurveyAsync(surveyId) == 1;
     }
 
     public async Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText)
     {
-        if (surveyId <= 0)
-            throw new ArgumentException("Invalid survey id.");
+
         var status = await _surveyRepository.ChangeSurveyStatusAsync(surveyId, statusText);
         if (!status)
             throw new KeyNotFoundException("there is no survey with the specified ID.");
@@ -113,9 +95,6 @@ public class SurveyService : ISurveyService
 
     public async Task<bool?> IsSurveyAnonymous(int surveyId)
     {
-        if (surveyId <= 0)
-            throw new ArgumentException("Invalid survey id.");
-
         return await _surveyRepository.IsSurveyAnonymousAsync(surveyId);
     }
 }
