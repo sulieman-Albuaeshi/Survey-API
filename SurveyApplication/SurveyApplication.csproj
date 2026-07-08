@@ -28,4 +28,10 @@
       <ProjectReference Include="..\SurveyBusinessLayer\SurveyBusinessLayer.csproj" />
     </ItemGroup>
 
+
+	<ItemGroup>
+		 
+		<InternalsVisibleTo Include="surveyTest" />
+	</ItemGroup>
+
 </Project>
