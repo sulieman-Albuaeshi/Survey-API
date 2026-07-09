@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SurveyBusinessLayer.Interface;
+﻿using SurveyBusinessLayer.Interface;
 using Repository.Interface;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
 using SurveyBusinessLayer.Mapper;
+using SurveyBusinessLayer.utility;
 
 namespace SurveyBusinessLayer
 {
@@ -33,7 +29,8 @@ namespace SurveyBusinessLayer
         public async Task<UserDetailsDto> CreateUserAsync(CreateUserDto dto)
         {
             var mappedUser = dto.ToDomainEntity();
-            // hash the password
+            
+            mappedUser.PasswordHash = Utility.hashPassword(dto.Password); 
 
             if (await _userRepository.IsEmailUniqueAsync(mappedUser.Email))
             {
@@ -51,6 +48,7 @@ namespace SurveyBusinessLayer
         public async Task<UserDetailsDto> UpdateUserAsync(UpdateUserDto dto)
         {
             var mappedUser = dto.ToDomainEntity();
+            mappedUser.PasswordHash = Utility.hashPassword(dto.Password);
 
             var updatedUser = await _userRepository.UpdateUserAsync(mappedUser);
 
@@ -66,9 +64,8 @@ namespace SurveyBusinessLayer
         }
         public async Task<User?> GetUserByEmailAndPasswordAsync(string email, string password)
         {
-            // the password should be hashed before calling this method
-
-            return await _userRepository.GetUserByEmailAndPasswordAsync(email, password);
+            var hashedPassword = Utility.hashPassword(password);
+            return await _userRepository.GetUserByEmailAndPasswordAsync(email, hashedPassword);
         }
     }
 }
