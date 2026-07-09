@@ -15,6 +15,39 @@ public class ResponseService : IResponseService
         _responseRepository = responseRepository;
     }
     
+    private static void VerifyBusinessRules(ResponseCreateDto dto, ResponseValidationDataDto? validationData)
+    {
+        // Check if the survey exists and is valid
+        if (validationData?.IsAnonymous == null)
+            throw new KeyNotFoundException($"Survey with ID {dto.SurveyId} not found.");
+
+        // Check if the survey is anonymous and if the userId is provided
+        if (validationData?.IsAnonymous == false && string.IsNullOrEmpty(dto.UserId))
+            throw new InvalidOperationException("Survey is not anonymous, userId must be provided.");
+
+        ValidateRequiredQuestions(dto, validationData.RequiredQuestionIds);
+        ValidateChoiceIds(dto, validationData.ValidChoiceIds);
+    }
+    private static void ValidateRequiredQuestions(ResponseCreateDto dto, IEnumerable<int> requiredQuestionIds)
+    {
+        var missingRequiredIds = requiredQuestionIds
+            .Where(id => !dto.Answers.Select(a => a.QuestionId)
+            .Contains(id))
+            .Count();
+        if (missingRequiredIds != 0)
+            throw new InvalidOperationException("All required questions must be answered.");
+    }
+    private static void ValidateChoiceIds(ResponseCreateDto dto, IEnumerable<int> validChoiceIds)
+    {
+        var validChoiceSet = validChoiceIds.ToHashSet();
+        var submittedChoiceIds = dto.Answers
+            .SelectMany(a => a.RankedChoices?.Select(s => s.ChoiceId) ?? Enumerable.Empty<int>())
+            .ToHashSet();
+
+        if (!submittedChoiceIds.All(id => validChoiceSet.Contains(id)))
+            throw new InvalidOperationException("One or more selected choices are invalid.");
+    }
+
     public async Task<List<ResponseDto>> GetAllResponsesDetailsAsync(int pageSize, int pageNumber)
     {
         if (pageSize <= 0 || pageNumber <= 0)
@@ -44,13 +77,12 @@ public class ResponseService : IResponseService
     
     public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-            throw new ArgumentException("User ID must be a non-empty value.", nameof(userId));
-               
+        // check if the user exsists in the database
+
         var responses = await _responseRepository.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
         
         if(responses.Count == 0)
-            throw new KeyNotFoundException($"No responses found for user ID {userId}.");
+            throw new InvalidOperationException($"No responses found for user ID {userId}.");
 
         var responseDtos = responses.Select(r => r.ToDto()).ToList();
 
@@ -73,35 +105,9 @@ public class ResponseService : IResponseService
     
     public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto dto)
     {
-        // survey validation
-        if (dto == null)
-            throw new ArgumentNullException(nameof(dto), "Response data cannot be null.");
-
-        if(dto.Answers == null || !dto.Answers.Any())
-            throw new InvalidOperationException("required questions must be answered");
-
         var validationData = await _responseRepository.GetValidationDataForSurveyAsync(dto.SurveyId);
 
-        if (validationData?.IsAnonymous == null)
-            throw new KeyNotFoundException($"Survey with ID {dto.SurveyId} not found.");
-
-        if ( validationData.IsAnonymous  == false && string.IsNullOrEmpty(dto.UserId))
-            throw new InvalidOperationException("Survey is not anonymous, userId must be provided.");
-
-        var missingRequiredIds = validationData.RequiredQuestionIds
-            .Where(id => !dto.Answers.Select(a => a.QuestionId)
-            .Contains(id))
-            .Count();
-
-        if (missingRequiredIds != 0)
-            throw new InvalidOperationException("All required questions must be answered.");
-
-        var submittedChoiceIds = dto.Answers
-            .SelectMany(a => a.RankedChoices?.Select(s => s.ChoiceId) ?? Enumerable.Empty<int>())
-            .ToHashSet();
-
-        if (!submittedChoiceIds.All(id => validationData.ValidChoiceIds.Contains(id)))
-            throw new InvalidOperationException("One or more selected choices are invalid.");
+        VerifyBusinessRules(dto, validationData);
 
         if (string.IsNullOrWhiteSpace(dto.UserId))
             dto.UserId = null;

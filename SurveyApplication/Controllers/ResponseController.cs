@@ -1,7 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
-using SurveyBusinessLayer.Interface;
 using SurveyBusinessLayer.DTOs;
-using Microsoft.Identity.Client;
+using SurveyBusinessLayer.Interface;
+using Microsoft.AspNetCore.Mvc;
 
 
 namespace SurveyApplication.Controllers;
@@ -23,20 +22,15 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<ResponseDto>>> GetAllResponses(int pageSize, int pageNumber)
     {
-        try
-        {
-            var responses = await _responseService.GetAllResponsesDetailsAsync(pageSize, pageNumber);
+        if (pageSize <= 0 || pageNumber <= 0) return BadRequest("Page size and page number must be greater than zero");
+
+        var responses = await _responseService.GetAllResponsesDetailsAsync(pageSize, pageNumber);
             
-            if(responses == null || !responses.Any())
-                return NotFound("No responses found.");
+        if(responses == null || !responses.Any())
+            return NotFound("No responses found.");
             
-            return Ok(responses);
-        }
-        catch (Exception ex)
-        {
-            // Log the exception (not implemented here)
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-        }
+        return Ok(responses);
+       
     }
     
     [HttpGet("survey/{surveyId}", Name = "GetResponsesBuSurvey")]
@@ -46,31 +40,16 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public  async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesBySurveyId(int surveyId, int pageSize, int pageNumber)
     {
-        try
-        {
-            var responses = await _responseService.GetResponsesBySurveyIdAsync(surveyId, pageSize, pageNumber);
-            
-            if(responses == null || !responses.Any())
-                return NotFound($"No responses found for survey ID {surveyId}.");
-            
-            return Ok(responses);
+        if (pageSize <= 0 || pageNumber <= 0) return BadRequest("Page size and page number must be greater than zero");
+        if (surveyId <= 0) return BadRequest("Invalid Survey ID");
 
-        }
-        catch (ArgumentException ex)
-        {
-            // Log the exception (not implemented here)
-            return BadRequest(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            // Log the exception (not implemented here)
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            // Log the exception (not implemented here)
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-        }
+        var responses = await _responseService.GetResponsesBySurveyIdAsync(surveyId, pageSize, pageNumber);
+            
+        if(responses == null || !responses.Any())
+            return NotFound($"No responses found for survey ID {surveyId}.");
+            
+        return Ok(responses);
+
     }
     
     [HttpGet("user/{userId}", Name = "GetResponsesByUser")]
@@ -80,30 +59,15 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesByUserId(string userId, int pageSize, int pageNumber)
     {
-        try
-        {
-            var responses = await _responseService.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
+        if (pageSize <= 0 || pageNumber <= 0) return BadRequest("Page size and page number must be greater than zero");
+
+        var responses = await _responseService.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
             
-            if(responses == null || !responses.Any())
-                return NotFound($"No responses found for user ID {userId}.");
+        if(responses == null || !responses.Any())
+            return NotFound($"No responses found for user ID {userId}.");
             
-            return Ok(responses);
-        }
-        catch (ArgumentException ex)
-        {
-            // Log the exception (not implemented here)
-            return BadRequest(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            // Log the exception (not implemented here)
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            // Log the exception (not implemented here)
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-        }
+        return Ok(responses);
+       
     }
     
     [HttpGet("{responseId}", Name = "GetResponseById")]
@@ -113,32 +77,16 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]    
     public async Task<ActionResult<ResponseDto>> GetResponseById(int responseId)
     {
-        try
-        {
-            var response = await _responseService.GetResponseByIdAsync(responseId);
+        if (responseId <= 0) return BadRequest("Invalid Response ID");
+
+        var response = await _responseService.GetResponseByIdAsync(responseId);
             
-            if(response == null)
-                return NotFound($"No response found with ID {responseId}.");
+        if(response == null)
+            return NotFound($"No response found with ID {responseId}.");
             
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            // Log the exception (not implemented here)
-            return BadRequest(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            // Log the exception (not implemented here)
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            // Log the exception (not implemented here)
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-        }
+        return Ok(response);
     }
-    
+
     
     [HttpPost("survey/{surveyId}", Name = "CreateResponse")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -146,32 +94,9 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> SubmitResponse([FromBody] ResponseCreateDto responseCreateDto)
-    {
-        try
-        {
-            var createdResponse = await _responseService.SubmitResponseAsync(responseCreateDto);
-            return CreatedAtRoute("GetResponseById", new { responseId = createdResponse.ResponseId}, createdResponse);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            // Log the exception (not implemented here)
-            return NotFound(ex.Message);
-        }
-        catch(ArgumentOutOfRangeException ex)
-        {
-            // Log the exception (not implemented here)
-            return BadRequest(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            // Log the exception (not implemented here)
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            // Log the exception (not implemented here)
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-        }
+    { 
+        var createdResponse = await _responseService.SubmitResponseAsync(responseCreateDto);
+        return CreatedAtRoute("GetResponseById", new { responseId = createdResponse.ResponseId}, createdResponse);
     }
 
     [HttpGet("survey/{surveyId}/Count", Name = "GetResponsesCount")]
@@ -180,21 +105,10 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> ResponseCountBySurveyId(int surveyId)
     {
-        try
-        {
-            var count = await _responseService.GetResponsesCountAsync(surveyId);
-            return Ok(new { SurveyId = surveyId, ResponseCount = count });
-        }
-        catch(InvalidOperationException ex)
-        {
-            // Log the exception (not implemented here)
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            // Log the exception (not implemented here)
-            return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
-        }
+        if (surveyId <= 0) return BadRequest("Invalid Survey ID");
+
+        var count = await _responseService.GetResponsesCountAsync(surveyId);
+        return Ok(new { SurveyId = surveyId, ResponseCount = count });
     }
 
 }
