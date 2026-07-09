@@ -1,6 +1,7 @@
 using SurveyBusinessLayer.DTOs;
 using SurveyBusinessLayer.Interface;
 using Microsoft.AspNetCore.Mvc;
+using FluentValidation;
 
 
 namespace SurveyApplication.Controllers;
@@ -10,10 +11,12 @@ namespace SurveyApplication.Controllers;
 public class ResponseController : ControllerBase
 {
     readonly IResponseService _responseService;
+    readonly IValidator<ResponseCreateDto> _createResponseValidator;
 
-    public ResponseController(IResponseService responseService)
+    public ResponseController(IResponseService responseService, IValidator<ResponseCreateDto> createResponseValidator)
     {
         _responseService = responseService;
+        _createResponseValidator = createResponseValidator;
     }
     
     [HttpGet("All",  Name = "GetAllResponses")]
@@ -95,6 +98,13 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> SubmitResponse([FromBody] ResponseCreateDto responseCreateDto)
     { 
+        var validationResult = _createResponseValidator.Validate(responseCreateDto);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.ToDictionary());
+        }
+
         var createdResponse = await _responseService.SubmitResponseAsync(responseCreateDto);
         return CreatedAtRoute("GetResponseById", new { responseId = createdResponse.ResponseId}, createdResponse);
     }
