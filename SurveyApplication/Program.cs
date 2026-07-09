@@ -11,7 +11,7 @@ using SurveyApplication.Validation.Survey;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-// For FluentValidation 
+// For FluentValidation one is fine the ASP.net will scan the assembly and find all validators 
 builder.Services.AddValidatorsFromAssemblyContaining<SurveyCreaterDtoValidation>();
 builder.Services.AddValidatorsFromAssemblyContaining<SurveyUpdateDtoValidation>();
 
