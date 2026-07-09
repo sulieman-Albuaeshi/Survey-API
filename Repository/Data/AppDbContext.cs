@@ -27,6 +27,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Response> Responses { get; set; }
 
     public virtual DbSet<Survey> Surveys { get; set; }
+    public virtual DbSet<User> User { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -90,6 +91,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Survey).WithMany(p => p.Responses)
                 .HasForeignKey(d => d.SurveyId)
                 .HasConstraintName("FK_Responses_Surveys");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SubmittedResponses)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_Responses_User");
         });
 
         modelBuilder.Entity<Survey>(entity =>
@@ -100,6 +105,28 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
             entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.CreatedSurveys)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_Surveys_User");
+        });
+        
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasIndex(e => e.Email);
+
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(450);
+            entity.Property(e => e.Email).HasMaxLength(200);
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.Role).HasMaxLength(50);
+            entity.Property(e => e.PasswordHash).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
         });
 
         OnModelCreatingPartial(modelBuilder);

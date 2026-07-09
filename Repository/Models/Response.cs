@@ -16,7 +16,7 @@ public partial class Response
     public DateTime SubmittedAt { get; set; }
 
     public virtual ICollection<Answer> Answers { get; set; } = new List<Answer>();
-
+    public virtual User? User { get; set; }
     public virtual Survey Survey { get; set; } = null!;
 }
 
