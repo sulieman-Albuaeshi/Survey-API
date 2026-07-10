@@ -60,10 +60,12 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesByUserId(string userId, int pageSize, int pageNumber)
+    public async Task<ActionResult<IEnumerable<ResponseDto>>> GetResponsesByUserId(int pageSize, int pageNumber)
     {
         if (pageSize <= 0 || pageNumber <= 0) return BadRequest("Page size and page number must be greater than zero");
 
+        // the userID will be geting from the JWT token, 
+        Guid userId = new Guid("test-user-123");
         var responses = await _responseService.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
             
         if(responses == null || !responses.Any())

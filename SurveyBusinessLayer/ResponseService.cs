@@ -109,9 +109,6 @@ public class ResponseService : IResponseService
 
         VerifyBusinessRules(dto, validationData);
 
-        if (string.IsNullOrWhiteSpace(dto.UserId))
-            dto.UserId = null;
-
         var response = dto.ToDominEntity();
 
         var createdResponse = await _responseRepository.SubmitResponseAsync(response);
