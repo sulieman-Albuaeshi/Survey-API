@@ -70,7 +70,7 @@ namespace Repository
             return response;
         }
 
-        public async Task<List<Response>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber)
+        public async Task<List<Response>> GetResponsesByUserIdAsync(Guid userId, int pageSize, int pageNumber)
         {
             int ToSkip = (pageNumber - 1) * pageSize;
             var response = await _context.Responses
@@ -78,7 +78,7 @@ namespace Repository
                                 .ThenInclude(a => a.AnswerSelections)
                             .Include(r => r.Survey)
                                 .ThenInclude(s => s.Questions)
-                            .Where(r => r.UserId == userId)
+                            .Where(r => r.UserId == userId.ToString())
                             .Skip(ToSkip)
                             .Take(pageSize)
                             .ToListAsync();

@@ -10,9 +10,11 @@ namespace SurveyBusinessLayer;
 public class ResponseService : IResponseService
 {
     private readonly IResponseRepository _responseRepository;
-    public ResponseService(IResponseRepository responseRepository)
+    private readonly IUserRepository _userRepository;
+    public ResponseService(IResponseRepository responseRepository, IUserRepository userRepository)
     {
         _responseRepository = responseRepository;
+        _userRepository = userRepository;
     }
     
     private static void VerifyBusinessRules(ResponseCreateDto dto, ResponseValidationDataDto? validationData)
@@ -64,20 +66,18 @@ public class ResponseService : IResponseService
     {
         if (surveyId <= 0)
             throw new ArgumentException("Survey ID must be a positive integer.", nameof(surveyId));
-        
+
         var responses = await _responseRepository.GetResponsesBySurveyIdAsync(surveyId, pageSize, pageNumber);
-        
-        if(responses.Count == 0)
-            throw new KeyNotFoundException($"No responses found for survey ID {surveyId}.");
 
         var responseDtos = responses.Select(r => r.ToDto()).ToList();
 
         return responseDtos;
     }
     
-    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId, int pageSize, int pageNumber)
+    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(Guid userId, int pageSize, int pageNumber)
     {
-        // check if the user exsists in the database
+        if(await _userRepository.IsUserExist(userId))
+            throw new KeyNotFoundException($"User with ID {userId} not found.");
 
         var responses = await _responseRepository.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
         
