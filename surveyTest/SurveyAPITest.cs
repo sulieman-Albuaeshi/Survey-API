@@ -30,7 +30,7 @@ namespace surveyTest
                 Description = "Testing the full pipeline!",
                 IsAnonymous = true,
                 Status = SurveyStatus.Draft,
-                UserId = "test-user-123",
+                UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
                 Questions = new List<Question>
                 {
                     new Question
@@ -132,7 +132,7 @@ namespace surveyTest
                 Description = "Testing the full pipeline!",
                 IsAnonymous = true,
                 Status = "Draft",
-                userId = "test-user-123",
+                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
                 Questions = new List<CreateQuestionDto>
                 {
                     new CreateQuestionDto

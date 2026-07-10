@@ -52,7 +52,7 @@ namespace SurveyBusinessLayer.Mapper
             return new Response
             {
                 SurveyId = Dto.SurveyId,
-                UserId = Dto.UserId,
+                UserId = !string.IsNullOrEmpty(Dto.UserId)? Guid.Parse(Dto.UserId) : null,
                 SubmittedAt = Dto.SubmittedAt,
                 Answers = Dto.Answers.Select(a => new Answer
                 {

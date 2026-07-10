@@ -38,6 +38,7 @@ public class SubmitResponseAsyncTests
         var survey = new Survey
         {
             Title = "Seeded Survey",
+            UserId = new  Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
             IsAnonymous = isAnonymous,
             Status = SurveyStatus.Draft
         };
@@ -70,8 +71,9 @@ public class SubmitResponseAsyncTests
     {
         // ARRANGE
         using var context = CreateTestDbContext();
-        var repository = new ResponseRepository(context); // adjust to your real repo type
-        var service = new ResponseService(repository);     // adjust to your real service type
+        var responseRepository = new ResponseRepository(context); // adjust to your real repo type
+        var userRepository = new UserRepository(context); // adjust to your real repo type
+        var service = new ResponseService(responseRepository, userRepository);     // adjust to your real service type
 
         var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
             context, isAnonymous: true, isRequired: true);
@@ -133,7 +135,7 @@ public class SubmitResponseAsyncTests
         var response = new ResponseCreateDto
         {
             SurveyId = surveyId,
-            UserId = "test-user-id", // required: survey is not anonymous
+            UserId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b", // required: survey is not anonymous
             SubmittedAt = DateTime.UtcNow,
             Answers = new List<AnswerCreateDto>
             {
@@ -151,8 +153,10 @@ public class SubmitResponseAsyncTests
         };
 
         var context2 = CreateTestDbContext(); // create a new context to avoid EF tracking issues
+
         var repository = new ResponseRepository(context2); // adjust to your real repo type
-        var service2 = new ResponseService(repository);
+        var userRepository = new UserRepository(context2); // adjust to your real repo type
+        var service2 = new ResponseService(repository, userRepository);
 
         // ACT
         var result = await service2.SubmitResponseAsync(response);
@@ -184,8 +188,9 @@ public class SubmitResponseAsyncTests
     public async Task SubmitResponseAsync_SurveyDoesNotExist_ThrowsKeyNotFoundException()
     {
         using var context = CreateTestDbContext();
-        var repository = new ResponseRepository(context);
-        var service = new ResponseService(repository);
+        var repository = new ResponseRepository(context); // adjust to your real repo 
+        var userRepository = new UserRepository(context); // adjust to your real repo type
+        var service = new ResponseService(repository, userRepository);
 
         var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
             context, isAnonymous: true, isRequired: false);
@@ -217,8 +222,9 @@ public class SubmitResponseAsyncTests
     public async Task SubmitResponseAsync_NonAnonymousSurveyMissingUserId_ThrowsInvalidOperationException()
     {
         using var context = CreateTestDbContext();
-        var repository = new ResponseRepository(context);
-        var service = new ResponseService(repository);
+        var repository = new ResponseRepository(context); // adjust to your real repo 
+        var userRepository = new UserRepository(context); // adjust to your real repo type
+        var service = new ResponseService(repository, userRepository);
 
         var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
             context, isAnonymous: false, isRequired: false);
@@ -252,8 +258,9 @@ public class SubmitResponseAsyncTests
     public async Task SubmitResponseAsync_MissingRequiredQuestion_ThrowsInvalidOperationException()
     {
         using var context = CreateTestDbContext();
-        var repository = new ResponseRepository(context);
-        var service = new ResponseService(repository);
+        var repository = new ResponseRepository(context); // adjust to your real repo 
+        var userRepository = new UserRepository(context); // adjust to your real repo type
+        var service = new ResponseService(repository, userRepository);
 
         var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
             context, isAnonymous: true, isRequired: true);
@@ -276,8 +283,9 @@ public class SubmitResponseAsyncTests
     {
         // This test directly covers the bug from your SQL FK error (ChoiceId = 15 that doesn't exist)
         using var context = CreateTestDbContext();
-        var repository = new ResponseRepository(context);
-        var service = new ResponseService(repository);
+        var repository = new ResponseRepository(context); // adjust to your real repo 
+        var userRepository = new UserRepository(context); // adjust to your real repo type
+        var service = new ResponseService(repository, userRepository);
 
         var (survey, question, choices) = await SeedSurveyWithChoiceQuestion(
             context, isAnonymous: true, isRequired: true);

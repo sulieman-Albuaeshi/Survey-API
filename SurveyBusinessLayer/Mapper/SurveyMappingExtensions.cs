@@ -36,7 +36,7 @@ namespace SurveyBusinessLayer.Mapper
                         ChoiceText = c.ChoiceText,
                     }).ToList()
                 }).ToList(),
-                UserId = dto.userId
+                UserId = Guid.Parse(dto.userId)
             };
         }
 

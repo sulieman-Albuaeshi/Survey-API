@@ -78,7 +78,7 @@ namespace Repository
                                 .ThenInclude(a => a.AnswerSelections)
                             .Include(r => r.Survey)
                                 .ThenInclude(s => s.Questions)
-                            .Where(r => r.UserId == userId.ToString())
+                            .Where(r => r.UserId == userId)
                             .Skip(ToSkip)
                             .Take(pageSize)
                             .ToListAsync();

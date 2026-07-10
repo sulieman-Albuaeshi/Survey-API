@@ -9,7 +9,7 @@ public partial class Response
 
     public int SurveyId { get; set; }
 
-    public string? UserId { get; set; }
+    public Guid? UserId { get; set; }
 
     public bool IsActive { get; set; }
 

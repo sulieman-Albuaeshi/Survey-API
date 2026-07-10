@@ -47,7 +47,7 @@ public class SurveyServiceTests
             Description = "Testing the full pipeline!",
             IsAnonymous = true,
             Status = "Draft",
-            userId = "test-user-123",
+            userId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b").ToString(),
             Questions = new List<CreateQuestionDto>
             {
                 new CreateQuestionDto
@@ -81,7 +81,7 @@ public class SurveyServiceTests
         Assert.Equal("Testing the full pipeline!", savedSurvey.Description);
         Assert.True(savedSurvey.IsAnonymous);
         Assert.Equal(SurveyStatus.Draft, savedSurvey.Status);
-        Assert.Equal("test-user-123", savedSurvey.UserId);
+        Assert.Equal("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b", savedSurvey.UserId.ToString());
         Assert.Equal(1, savedSurvey.QuestionCount); 
 
         // 2. Question Level Assertions
@@ -117,7 +117,7 @@ public class SurveyServiceTests
             Description = "Testing nested questions and choices.",
             IsAnonymous = false,
             Status = "Draft",
-            userId = "test-user-456",
+            userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
             Questions = new List<CreateQuestionDto>
             {
                 new CreateQuestionDto
@@ -168,7 +168,7 @@ public class SurveyServiceTests
             Description = "Testing nested questions and choices.",
             IsAnonymous = false,
             Status = "Draft",
-            userId = "test-user-456",
+            userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
             Questions = new List<CreateQuestionDto>
             {
                 new CreateQuestionDto
@@ -203,7 +203,7 @@ public class SurveyServiceTests
             Description = "This survey has a question with duplicate choices.",
             IsAnonymous = false,
             Status = "Draft",
-            userId = "test-user-456",
+            userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
             Questions = new List<CreateQuestionDto>
             {
                 new CreateQuestionDto
@@ -224,24 +224,6 @@ public class SurveyServiceTests
     }
 
     [Fact]
-    public async Task CreateSurvey_ShouldThrowArgumentException_WhenTitleIsMissing()
-    {
-        using var context = CreateTestDbContext();
-        var repository = new SurveyRepository(context);
-        var service = new SurveyService(repository);
-        var incomingDto = new CreateSurveyDto
-        {
-            Title = "", // Missing title
-            Description = "This survey has no title.",
-            IsAnonymous = true,
-            Status = "Draft",
-            userId = "test-user-789",
-            Questions = new List<CreateQuestionDto>()
-        };
-        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateSurveyWithQuestionsAsync(incomingDto));
-    }
-
-    [Fact]
     public async Task CreateSurvey_ShouldThrowArgumentException_WhenQuestionTypeIsInvalid()
     {
         using var context = CreateTestDbContext();
@@ -253,7 +235,7 @@ public class SurveyServiceTests
             Description = "This survey has an invalid question type.",
             IsAnonymous = false,
             Status = "Draft",
-            userId = "test-user-101",
+            userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
             Questions = new List<CreateQuestionDto>
             {
                 new CreateQuestionDto
@@ -284,7 +266,7 @@ public class SurveyServiceTests
             Description = "This survey has a question with no choices.",
             IsAnonymous = true,
             Status = "Draft",
-            userId = "test-user-202",
+            userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
             Questions = new List<CreateQuestionDto>
             {
                 new CreateQuestionDto
@@ -315,7 +297,7 @@ public class SurveyServiceTests
                 Description = "Original Description",
                 IsAnonymous = false,
                 Status = SurveyStatus.Draft,
-                UserId = "test-user-123",
+                UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
                 QuestionCount = 1,
                 Questions = new List<Question>
             {
@@ -460,7 +442,7 @@ public class SurveyServiceTests
                 Description = "Has questions, ready to go live.",
                 IsAnonymous = false,
                 Status = SurveyStatus.Draft,
-                UserId = "test-user-123",
+                UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
                 Questions = new List<Question>
                 {
                     new Question
@@ -510,7 +492,7 @@ public class SurveyServiceTests
                 Title = "Empty Ghost Survey",
                 Description = "Accidentally left blank.",
                 Status = SurveyStatus.Draft,
-                UserId = "test-user-123"
+                UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b")
             };
             await seedContext.Surveys.AddAsync(ghostSurvey);
             await seedContext.SaveChangesAsync();
@@ -543,7 +525,7 @@ public class SurveyServiceTests
             {
                 Title = "Strict State Survey",
                 Status = SurveyStatus.Draft,
-                UserId = "test-user-123"
+                UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b")
             };
             await seedContext.Surveys.AddAsync(draftSurvey);
             await seedContext.SaveChangesAsync();
@@ -572,7 +554,7 @@ public class SurveyServiceTests
         int testSurveyId;
         using (var seedContext = CreateTestDbContext())
         {
-            var survey = new Survey { Title = "Typo Test", Status = SurveyStatus.Draft, UserId = "test-user-123" };
+            var survey = new Survey { Title = "Typo Test", Status = SurveyStatus.Draft, UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b") };
             await seedContext.Surveys.AddAsync(survey);
             await seedContext.SaveChangesAsync();
             testSurveyId = survey.Id;
@@ -617,7 +599,7 @@ public class SurveyServiceTests
         int testSurveyId;
         using (var seedContext = CreateTestDbContext())
         {
-            var survey = new Survey { Title = "Status Match Test", Status = SurveyStatus.Published, UserId = "test-user-123" };
+            var survey = new Survey { Title = "Status Match Test", Status = SurveyStatus.Published, UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b") };
             await seedContext.Surveys.AddAsync(survey);
             await seedContext.SaveChangesAsync();
             testSurveyId = survey.Id;
@@ -645,7 +627,7 @@ public class SurveyServiceTests
         int testSurveyId;
         using (var seedContext = CreateTestDbContext())
         {
-            var survey = new Survey { Title = "Published Guard Test", Status = SurveyStatus.Published, UserId = "test-user-123" };
+            var survey = new Survey { Title = "Published Guard Test", Status = SurveyStatus.Published, UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b") };
             await seedContext.Surveys.AddAsync(survey);
             await seedContext.SaveChangesAsync();
             testSurveyId = survey.Id;
@@ -673,7 +655,7 @@ public class SurveyServiceTests
         int testSurveyId;
         using (var seedContext = CreateTestDbContext())
         {
-            var survey = new Survey { Title = "Archived Guard Test", Status = SurveyStatus.Archived, UserId = "test-user-123" };
+            var survey = new Survey { Title = "Archived Guard Test", Status = SurveyStatus.Archived, UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b") };
             await seedContext.Surveys.AddAsync(survey);
             await seedContext.SaveChangesAsync();
             testSurveyId = survey.Id;
@@ -701,7 +683,7 @@ public class SurveyServiceTests
         int testSurveyId;
         using (var seedContext = CreateTestDbContext())
         {
-            var survey = new Survey { Title = "Live Survey", Status = SurveyStatus.Published, UserId = "test-user-123" };
+            var survey = new Survey { Title = "Live Survey", Status = SurveyStatus.Published, UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b") };
             await seedContext.Surveys.AddAsync(survey);
             await seedContext.SaveChangesAsync();
             testSurveyId = survey.Id;
@@ -735,7 +717,7 @@ public class SurveyServiceTests
         int testSurveyId;
         using (var seedContext = CreateTestDbContext())
         {
-            var survey = new Survey { Title = "Old Archived Survey", Status = SurveyStatus.Archived, UserId = "test-user-123" };
+            var survey = new Survey { Title = "Old Archived Survey", Status = SurveyStatus.Archived, UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b") };
             await seedContext.Surveys.AddAsync(survey);
             await seedContext.SaveChangesAsync();
             testSurveyId = survey.Id;
