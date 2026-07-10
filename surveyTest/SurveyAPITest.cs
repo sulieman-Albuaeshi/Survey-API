@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Routing;
+﻿using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Repository.Data;
@@ -22,14 +21,14 @@ namespace surveyTest
             _output = output;
         }
 
-        private Survey CreateSurveyInDatabase()
+        private Survey CreateSurveyInDatabase(SurveyStatus status = SurveyStatus.Draft)
         {
             var newSurvey = new Survey
             {
                 Title = "Junior Safe Test",
                 Description = "Testing the full pipeline!",
                 IsAnonymous = true,
-                Status = SurveyStatus.Draft,
+                Status = status,
                 UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
                 Questions = new List<Question>
                 {
@@ -232,6 +231,239 @@ namespace surveyTest
         }
 
         [Fact]
+        public async Task CreateSurvey_WithMissingTitle_ReturnsBadRequest()
+        {
+            // Arrange
+            var endpoint = "/api/surveys/Create";
+            var newSurvey = new CreateSurveyDto
+            {
+                Title = "", // Missing title
+                Description = "Testing the full pipeline!",
+                IsAnonymous = true,
+                Status = "Draft",
+                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                Questions = new List<CreateQuestionDto>
+                {
+                    new CreateQuestionDto
+                    {
+                        QuestionText = "Is this easy?",
+                        IsRequired = true,
+                        QuestionType = "Radio",
+                        Choices = new List<CreateChoiceDto>
+                        {
+                            new CreateChoiceDto{ ChoiceText = "Yes" },
+                            new CreateChoiceDto{ ChoiceText = "No" }
+                        }
+                    }
+                }
+            };
+
+            // Act
+            var response = await _client.PostAsJsonAsync(endpoint, newSurvey);
+            ReadResponseContent(response);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateSurvey_WhenSurveyIsPublished_ReturnsError()
+        {
+            // Arrange
+            var publishedSurvey = CreateSurveyInDatabase(SurveyStatus.Published);
+            var QuestionId = publishedSurvey.Questions.First().Id;
+            var ChoiceId = publishedSurvey.Questions.First().Choices.First().Id;
+            var endpoint = $"/api/surveys/{publishedSurvey.Id}";
+
+            var updateDto = new UpdaatSurveyDto
+            {
+                Id = publishedSurvey.Id,
+                Title = "Trying to update published survey",
+                Description = "Should fail",
+                IsAnonymous = true,
+                Status = "Draft", // Changing it to Draft befoure closeing it
+                Questions = new List<UpdateQuestionDto>
+                {
+                    new UpdateQuestionDto
+                    {
+                        Id = QuestionId,
+                        QuestionText = "Altered Text",
+                        IsRequired = true,
+                        QuestionType = "Radio",
+                        Choices = new List<updateChoiceDto>
+                        {
+                            new updateChoiceDto { Id = ChoiceId, ChoiceText = "Altered Choice" }
+                        }
+                    }
+                }
+            };
+
+            // Act
+            var response = await _client.PutAsJsonAsync(endpoint, updateDto);
+            ReadResponseContent(response);
+
+            // Assert
+            // Your API might return 400 Bad Request or 500 Internal Server Error (because of InvalidOperationException)
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        }
+
+        [Fact]
+        public async Task CreateSurvey_WithoutQuestions_ReturnsBadRequest()
+        {
+            // Arrange
+            var endpoint = "/api/surveys/Create";
+            var newSurvey = new CreateSurveyDto
+            {
+                Title = "No Questions Survey",
+                Description = "This survey has no questions.",
+                IsAnonymous = true,
+                Status = "Draft",
+                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                Questions = new List<CreateQuestionDto>() // Missing questions
+            };
+
+            // Act
+            var response = await _client.PostAsJsonAsync(endpoint, newSurvey);
+            ReadResponseContent(response);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateSurvey_WithMissingUserId_ReturnsBadRequest()
+        {
+            // Arrange
+            var endpoint = "/api/surveys/Create";
+            var newSurvey = new CreateSurveyDto
+            {
+                Title = "Missing User Survey",
+                Description = "Testing missing user.",
+                IsAnonymous = true,
+                Status = "Draft",
+                userId = "", // Missing user id
+                Questions = new List<CreateQuestionDto>
+                {
+                    new CreateQuestionDto
+                    {
+                        QuestionText = "Is this easy?",
+                        IsRequired = true,
+                        QuestionType = "Radio",
+                        Choices = new List<CreateChoiceDto>
+                        {
+                            new CreateChoiceDto{ ChoiceText = "Yes" },
+                            new CreateChoiceDto{ ChoiceText = "No" }
+                        }
+                    }
+                }
+            };
+
+            // Act
+            var response = await _client.PostAsJsonAsync(endpoint, newSurvey);
+            ReadResponseContent(response);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateSurvey_WithoutQuestions_ReturnsBadRequest()
+        {
+            // Arrange
+            var survey = CreateSurveyInDatabase();
+            var endpoint = $"/api/surveys/{survey.Id}";
+
+            var updateDto = new UpdaatSurveyDto
+            {
+                Id = survey.Id,
+                Title = "Updated Survey Title without Questions",
+                Description = "Updated Description",
+                IsAnonymous = true,
+                Status = "Draft",
+                Questions = new List<UpdateQuestionDto>() // Missing questions
+            };
+
+            // Act
+            var response = await _client.PutAsJsonAsync(endpoint, updateDto);
+            ReadResponseContent(response);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateSurvey_WithInvalidSurveyId_ReturnsBadRequest()
+        {
+            // Arrange
+            var surveyId = -5; // Invalid ID
+            var endpoint = $"/api/surveys/{surveyId}";
+
+            var updateDto = new UpdaatSurveyDto
+            {
+                Id = surveyId,
+                Title = "Invalid ID Survey",
+                Description = "Invalid ID Description",
+                IsAnonymous = true,
+                Status = "Draft",
+                Questions = new List<UpdateQuestionDto>
+                {
+                    new UpdateQuestionDto
+                    {
+                        Id = 1,
+                        QuestionText = "Altered Text",
+                        IsRequired = true,
+                        QuestionType = "Radio",
+                        Choices = new List<updateChoiceDto>
+                        {
+                            new updateChoiceDto { Id = 1, ChoiceText = "Choice 1" },
+                            new updateChoiceDto { Id = 2, ChoiceText = "Choice 2" }
+                        }
+                    }
+                }
+            };
+
+            // Act
+            var response = await _client.PutAsJsonAsync(endpoint, updateDto);
+            ReadResponseContent(response);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CreateSurvey_WithQuestionMissingChoices_ReturnsBadRequest()
+        {
+            // Arrange
+            var endpoint = "/api/surveys/Create";
+            var newSurvey = new CreateSurveyDto
+            {
+                Title = "Missing Choices Survey",
+                Description = "This survey has questions but missing choices.",
+                IsAnonymous = true,
+                Status = "Draft",
+                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                Questions = new List<CreateQuestionDto>
+                {
+                    new CreateQuestionDto
+                    {
+                        QuestionText = "What do you think?",
+                        IsRequired = true,
+                        QuestionType = "Radio", // Radio requires choices
+                        Choices = new List<CreateChoiceDto>() // Missing choices
+                    }
+                }
+            };
+
+            // Act
+            var response = await _client.PostAsJsonAsync(endpoint, newSurvey);
+            ReadResponseContent(response);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
         public async Task DeleteSurvey_WhenFound_ReturnsNotContent()
         {
             // Arrange
@@ -289,6 +521,36 @@ namespace surveyTest
             {
                 Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
             }
+        }
+
+        [Fact]
+        public async Task ChangeSurveyStatus_WhenPublishedToDraft_ReturnsInternalServerError()
+        {
+            // Arrange
+            var survey = CreateSurveyInDatabase();
+            var surveyId = survey.Id;
+            var endpoint = $"/api/surveys/{surveyId}/status";
+            
+            // First change status to Published
+            var publishedStatusDto = new SurveyStatusDto
+            {
+                StatusText = "Published"
+            };
+            await _client.PatchAsJsonAsync(endpoint, publishedStatusDto);
+
+            // Now attempt to change from Published back to Draft
+            var draftStatusDto = new SurveyStatusDto
+            {
+                StatusText = "Draft"
+            };
+
+            // Act
+            var response = await _client.PatchAsJsonAsync(endpoint, draftStatusDto);
+            ReadResponseContent(response);
+
+            // Assert
+            // from unhandled exception, unless a middleware turns it into 400.
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
     }
 }
