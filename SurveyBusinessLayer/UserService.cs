@@ -30,7 +30,7 @@ namespace SurveyBusinessLayer
         {
             var mappedUser = dto.ToDomainEntity();
             
-            mappedUser.PasswordHash = Utility.hashPassword(dto.Password); 
+            mappedUser.PasswordHash = MyUtility.hashPassword(dto.Password); 
 
             if (await _userRepository.IsEmailUniqueAsync(mappedUser.Email))
             {
@@ -48,7 +48,7 @@ namespace SurveyBusinessLayer
         public async Task<UserDetailsDto> UpdateUserAsync(UpdateUserDto dto)
         {
             var mappedUser = dto.ToDomainEntity();
-            mappedUser.PasswordHash = Utility.hashPassword(dto.Password);
+            mappedUser.PasswordHash = MyUtility.hashPassword(dto.Password);
 
             var updatedUser = await _userRepository.UpdateUserAsync(mappedUser);
 
@@ -64,7 +64,7 @@ namespace SurveyBusinessLayer
         }
         public async Task<User?> GetUserByEmailAndPasswordAsync(string email, string password)
         {
-            var hashedPassword = Utility.hashPassword(password);
+            var hashedPassword = MyUtility.hashPassword(password);
             return await _userRepository.GetUserByEmailAndPasswordAsync(email, hashedPassword);
         }
     }
