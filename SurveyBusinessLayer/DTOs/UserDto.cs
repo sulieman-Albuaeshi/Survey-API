@@ -41,3 +41,9 @@ public class UpdateUserDto : CreateUserDto
     public Guid Id { get; set; }
     public bool IsActive { get; set; }
 }
+
+public class UserLoginDto
+{
+    public string Email { get; set; } = null!;
+    public string Password { get; set; } = null!;
+}
