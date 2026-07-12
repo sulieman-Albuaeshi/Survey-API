@@ -17,7 +17,7 @@ namespace Repository
         public async Task<List<Survey>> GetAllSurveysAsync(int pageSize, int pageNumber)
         {
             if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 10 || pageSize > 20) pageSize = 10; 
+            if (pageSize < 10 || pageSize > 20) pageSize = 10;
 
             int recordToSkip = (pageNumber - 1) * pageSize;
             return await _context.Surveys
@@ -172,28 +172,28 @@ namespace Repository
             _context.Surveys.Remove(survey);
             return await _context.SaveChangesAsync();
         }
-        
+
         public async Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText)
         {
             var survey = await _context.Surveys.FindAsync(surveyId);
             if (survey == null)
                 throw new KeyNotFoundException($"Survey with ID {surveyId} not found.");
-            
+
             if (!Enum.TryParse<SurveyStatus>(statusText, true, out var newStatus))
                 throw new ArgumentException($"Invalid status: {statusText}. Valid statuses are: {string.Join(", ", Enum.GetNames(typeof(SurveyStatus)))}");
-            
+
             if (survey.Status == newStatus)
                 throw new InvalidOperationException($"Survey is already in the {newStatus} status.");
-            
+
             if (survey.Status == SurveyStatus.Published && newStatus != SurveyStatus.Archived)
                 throw new InvalidOperationException("Cannot change status of a Published survey to anything other than Archived.");
-            
+
             if(survey.Status == SurveyStatus.Archived && newStatus != SurveyStatus.Draft)
                 throw new InvalidOperationException("Cannot change status of an Archived survey to anything other than Draft.");
 
             if(survey.Status == SurveyStatus.Draft && newStatus != SurveyStatus.Published)
                 throw new InvalidOperationException("Cannot change status of a Draft survey directly to Archived. Please publish it first.");
-            
+
             if (survey.Status == SurveyStatus.Draft && newStatus == SurveyStatus.Published)
             {
                 // Double-check your user didn't build an accidental ghost survey
@@ -210,6 +210,14 @@ namespace Repository
         public async Task<bool?> IsSurveyAnonymousAsync(int surveyId)
         {
             return await _context.Surveys.Where(s => s.Id == surveyId && s.IsAnonymous).Select(s => (bool?)s.IsAnonymous).FirstOrDefaultAsync();
+        }
+        public async Task<string?> GetUserIdBySurveyIdAsync(int surveyId)
+        {
+            var userId = await _context.Surveys.AsNoTracking().Where(s => s.Id == surveyId).Select(s => s.UserId).FirstOrDefaultAsync();
+            if (userId == null)
+                throw new KeyNotFoundException($"Survey not found.");
+
+            return userId.ToString();
         }
     }
 }

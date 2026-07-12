@@ -7,6 +7,7 @@ public interface ISurveyService
 {
     Task<List<SurveyDto>> GetAllSurveysAsync(int pageSize, int pageNumber);
     Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId);
+    Task<string?> GetUserIdBySurveyIdAsync(int survceyId);
     Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto survey);
     Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto survey);
     Task<bool> DeleteSurveyAsync(int surveyId);

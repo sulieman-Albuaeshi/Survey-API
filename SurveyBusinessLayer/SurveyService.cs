@@ -26,11 +26,15 @@ public class SurveyService : ISurveyService
         return dto;
     }
     
-    public async Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId)
+    public async Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId, bool isAuthenticated)
     {
         var survey = await _surveyRepository.GetSurveyByIdAsync(surveyId);
+
         if (survey == null)
             throw new KeyNotFoundException("Survey not found.");
+
+        if (!isAuthenticated && !survey.IsAnonymous)
+            throw new UnauthorizedAccessException("You must be Login to access this survey.");
 
         return survey.ToDetailsDto();
     }
@@ -96,5 +100,13 @@ public class SurveyService : ISurveyService
     public async Task<bool?> IsSurveyAnonymous(int surveyId)
     {
         return await _surveyRepository.IsSurveyAnonymousAsync(surveyId);
+    }
+
+    public async Task<string?> GetUserIdBySurveyIdAsync(int surveyId)
+    {
+        var userId = await _surveyRepository.GetUserIdBySurveyIdAsync(surveyId);
+        if (userId == null)
+            throw new KeyNotFoundException("there is no survey with the specified ID.");
+        return userId;
     }
 }
