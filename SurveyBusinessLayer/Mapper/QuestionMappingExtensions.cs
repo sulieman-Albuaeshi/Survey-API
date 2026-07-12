@@ -13,7 +13,7 @@ namespace SurveyBusinessLayer.Mapper
                 QuestionText = question.QuestionText,
                 IsRequired = question.IsRequired,
                 OrderIndex = question.OrderIndex,
-                QuestionTypeName = question.QuestionTypeEnum.ToString(),
+                QuestionType = question.QuestionTypeEnum.ToString(),
                 Choices = question.Choices.Select(c => new ChoiceDto
                 {
                     Id = c.Id,

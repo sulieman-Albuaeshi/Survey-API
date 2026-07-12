@@ -6,12 +6,12 @@ public interface IQuestionBaseDto
     bool IsRequired { get; set; }
     string QuestionType { get; set; }
 }
-public class UpdateQuestionDto : IQuestionBaseDto
+public class UpdateQuestionDto
 {
     public int Id { get; set; }
-    public string QuestionText { get; set; } = null!;
-    public bool IsRequired { get; set; }
-    public string QuestionType { get; set; } = null!;
+    public string? QuestionText { get; set; } = null!;
+    public bool? IsRequired { get; set; }
+    public string? QuestionType { get; set; } = null!;
     public List<updateChoiceDto> Choices { get; set; } = new();
 }
 
@@ -22,7 +22,7 @@ public class QuestionDetailsDto
     public bool IsRequired { get; set; }
 
     public int OrderIndex { get; set; }
-    public string QuestionTypeName { get; set; } = null!;
+    public string QuestionType { get; set; } = null!;
     public List<ChoiceDto> Choices { get; set; } = new();
 }
 

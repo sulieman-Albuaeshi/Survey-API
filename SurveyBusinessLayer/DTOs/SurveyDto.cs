@@ -26,18 +26,18 @@ public class CreateSurveyDto : ISurveyBaseDto
     public string? Description { get; set; }
     public bool IsAnonymous { get; set; }
     public string Status { get; set; } = null!;
-    public string userId { get; set; } = string.Empty;
+    public string userId { get; set; } = null!;
     public List<CreateQuestionDto> Questions { get; set; } = new List<CreateQuestionDto>();
 }
 
-public class UpdaatSurveyDto : ISurveyBaseDto
+public class UpdaatSurveyDto
 {
     public int Id { get; set; }
-    public required string Title { get; set; }
+    public string? Title { get; set; }
     public string? Description { get; set; }
-    public bool IsAnonymous { get; set; }
-    public string Status { get; set; } = null!;
-    public string userId { get; set; } = string.Empty;
+    public bool? IsAnonymous { get; set; }
+    public string? Status { get; set; } = null!;
+    public string? userId { get; set; } = string.Empty;
     public List<UpdateQuestionDto> Questions { get; set; } = new List<UpdateQuestionDto>();
 }
 
