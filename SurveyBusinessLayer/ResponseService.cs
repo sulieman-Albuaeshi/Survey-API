@@ -17,15 +17,15 @@ public class ResponseService : IResponseService
         _userRepository = userRepository;
     }
     
-    private static void VerifyBusinessRules(ResponseCreateDto dto, ResponseValidationDataDto? validationData)
+    private static void VerifyBusinessRules(ResponseCreateDto dto, ResponseValidationDataDto? validationData, bool isAuthenticated)
     {
         // Check if the survey exists and is valid
         if (validationData?.IsAnonymous == null)
             throw new KeyNotFoundException($"Survey with ID {dto.SurveyId} not found.");
 
         // Check if the survey is anonymous and if the userId is provided
-        if (validationData?.IsAnonymous == false && string.IsNullOrEmpty(dto.UserId))
-            throw new InvalidOperationException("Survey is not anonymous, userId must be provided.");
+        if (validationData?.IsAnonymous == false && !isAuthenticated)
+            throw new UnauthorizedAccessException("Survey is not anonymous, You nee dto login first");
 
         ValidateRequiredQuestions(dto, validationData.RequiredQuestionIds);
         ValidateChoiceIds(dto, validationData.ValidChoiceIds);
@@ -89,13 +89,12 @@ public class ResponseService : IResponseService
         return responseDtos;
 
     }
-
-    public async Task<ResponseDto> GetResponseByIdAsync(int responseId)
+    public async Task<ResponseDto> GetResponseByIdAsync(int responseId, Guid userId)
     {
         if (responseId <= 0)
             throw new ArgumentException("Response ID must be a positive integer.", nameof(responseId));
         
-        var response = await _responseRepository.GetResponseByIdAsync(responseId);
+        var response = await _responseRepository.GetResponseByIdAsync(responseId, userId);
         
         if(response == null)
             throw new KeyNotFoundException($"No response found with ID {responseId}.");
@@ -103,11 +102,11 @@ public class ResponseService : IResponseService
         return response.ToDto();
     }
     
-    public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto dto)
+    public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto dto, bool isAuthenticated)
     {
         var validationData = await _responseRepository.GetValidationDataForSurveyAsync(dto.SurveyId);
 
-        VerifyBusinessRules(dto, validationData);
+        VerifyBusinessRules(dto, validationData, isAuthenticated);
 
         var response = dto.ToDominEntity();
 

@@ -36,14 +36,14 @@ namespace Repository
                 .ToListAsync();
         }
 
-        public async Task<Response> GetResponseByIdAsync(int responseId)
+        public async Task<Response> GetResponseByIdAsync(int responseId, Guid userId)
         {
             var response = await _context.Responses
                 .Include(r => r.Answers)
                     .ThenInclude(a => a.AnswerSelections)
                 .Include(r => r.Survey)
                     .ThenInclude(s => s.Questions)
-                .FirstOrDefaultAsync(r => r.Id == responseId);
+                .FirstOrDefaultAsync(r => r.Id == responseId && r.UserId == userId);
             if (response == null)
             {
                 throw new KeyNotFoundException($"Response with ID {responseId} not found.");
