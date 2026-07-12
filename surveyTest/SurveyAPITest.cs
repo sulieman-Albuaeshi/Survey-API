@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Repository.Data;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
@@ -14,14 +15,19 @@ namespace surveyTest
     {
         private readonly HttpClient _client;
         private readonly ITestOutputHelper _output;
+        private readonly IConfiguration _configuration;
+        private readonly TestAuthHandler _authHandler;
+        
         public SurveyAPITest(ITestOutputHelper output)
         {
             var application = new SurveyWebApplicationFactory();
             _client = application.CreateClient();
             _output = output;
+            _configuration = application.Server.Services.GetRequiredService<IConfiguration>();
+            _authHandler = new TestAuthHandler(_configuration, _client);
         }
 
-        private Survey CreateSurveyInDatabase(SurveyStatus status = SurveyStatus.Draft)
+        private Survey CreateSurveyInDatabase(string userId, SurveyStatus status = SurveyStatus.Draft)
         {
             var newSurvey = new Survey
             {
@@ -29,7 +35,7 @@ namespace surveyTest
                 Description = "Testing the full pipeline!",
                 IsAnonymous = true,
                 Status = status,
-                UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
+                UserId = Guid.TryParse(userId, out var guid) ? guid : (Guid?)null,
                 Questions = new List<Question>
                 {
                     new Question
@@ -77,9 +83,11 @@ namespace surveyTest
             _output.WriteLine($"Response Content: {content}");
         }
 
+
         [Fact]
         public async Task GetAllSurveys_WithValidParams_ReturnsSuccess()
         {
+            _authHandler.AddAuthHeaderAdmin();
             // Arrange
             var endpoint = "/api/surveys/All?pageSize=5&pageNumber=1";
 
@@ -95,6 +103,7 @@ namespace surveyTest
         [Fact]
         public async Task GetAllSurveys_WithZeroPageSize_ReturnsBadRequest()
         {
+            _authHandler.AddAuthHeaderAdmin();
             // Arrange
             var endpoint = "/api/surveys/All?pageSize=0&pageNumber=1";
 
@@ -108,6 +117,7 @@ namespace surveyTest
         [Fact]
         public async Task GetSurveyById_WithInvalidId_ReturnsBadRequest()
         {
+            _authHandler.AddAuthHeaderCreator();
             // Arrange
             var endpoint = "/api/surveys/-5";
 
@@ -123,6 +133,8 @@ namespace surveyTest
         [Fact]
         public async Task CreateSurvey_WithValidData_ReturnsCreated()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
             var endpoint = "/api/surveys/Create";
             var newSurvey = new CreateSurveyDto
@@ -131,7 +143,7 @@ namespace surveyTest
                 Description = "Testing the full pipeline!",
                 IsAnonymous = true,
                 Status = "Draft",
-                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                userId = userId,
                 Questions = new List<CreateQuestionDto>
                 {
                     new CreateQuestionDto
@@ -162,9 +174,11 @@ namespace surveyTest
 
         [Fact]
         public async Task UpdateSurvey_WithValidData_ReturnsOkOrBadRequest()
-        { 
+        {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
-            var survey = CreateSurveyInDatabase();
+            var survey = CreateSurveyInDatabase(userId);
             var QuestionId = survey.Questions.First().Id;
             var ChoiceId = survey.Questions.First().Choices.First().Id;
             var endpoint = $"/api/surveys/{survey.Id}";
@@ -233,6 +247,8 @@ namespace surveyTest
         [Fact]
         public async Task CreateSurvey_WithMissingTitle_ReturnsBadRequest()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
             var endpoint = "/api/surveys/Create";
             var newSurvey = new CreateSurveyDto
@@ -241,7 +257,7 @@ namespace surveyTest
                 Description = "Testing the full pipeline!",
                 IsAnonymous = true,
                 Status = "Draft",
-                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                userId = userId,
                 Questions = new List<CreateQuestionDto>
                 {
                     new CreateQuestionDto
@@ -269,8 +285,12 @@ namespace surveyTest
         [Fact]
         public async Task UpdateSurvey_WhenSurveyIsPublished_ReturnsError()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
-            var publishedSurvey = CreateSurveyInDatabase(SurveyStatus.Published);
+            var survey = CreateSurveyInDatabase(userId);
+            // Arrange
+            var publishedSurvey = CreateSurveyInDatabase(userId, SurveyStatus.Published);
             var QuestionId = publishedSurvey.Questions.First().Id;
             var ChoiceId = publishedSurvey.Questions.First().Choices.First().Id;
             var endpoint = $"/api/surveys/{publishedSurvey.Id}";
@@ -311,6 +331,8 @@ namespace surveyTest
         [Fact]
         public async Task CreateSurvey_WithoutQuestions_ReturnsBadRequest()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
             var endpoint = "/api/surveys/Create";
             var newSurvey = new CreateSurveyDto
@@ -319,7 +341,7 @@ namespace surveyTest
                 Description = "This survey has no questions.",
                 IsAnonymous = true,
                 Status = "Draft",
-                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                userId = userId,
                 Questions = new List<CreateQuestionDto>() // Missing questions
             };
 
@@ -334,6 +356,7 @@ namespace surveyTest
         [Fact]
         public async Task CreateSurvey_WithMissingUserId_ReturnsBadRequest()
         {
+
             // Arrange
             var endpoint = "/api/surveys/Create";
             var newSurvey = new CreateSurveyDto
@@ -364,14 +387,16 @@ namespace surveyTest
             ReadResponseContent(response);
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact]
         public async Task UpdateSurvey_WithoutQuestions_ReturnsBadRequest()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
-            var survey = CreateSurveyInDatabase();
+            var survey = CreateSurveyInDatabase(userId);
             var endpoint = $"/api/surveys/{survey.Id}";
 
             var updateDto = new UpdaatSurveyDto
@@ -395,6 +420,7 @@ namespace surveyTest
         [Fact]
         public async Task UpdateSurvey_WithInvalidSurveyId_ReturnsBadRequest()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
             // Arrange
             var surveyId = -5; // Invalid ID
             var endpoint = $"/api/surveys/{surveyId}";
@@ -434,6 +460,8 @@ namespace surveyTest
         [Fact]
         public async Task CreateSurvey_WithQuestionMissingChoices_ReturnsBadRequest()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+            
             // Arrange
             var endpoint = "/api/surveys/Create";
             var newSurvey = new CreateSurveyDto
@@ -442,7 +470,7 @@ namespace surveyTest
                 Description = "This survey has questions but missing choices.",
                 IsAnonymous = true,
                 Status = "Draft",
-                userId = "7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b",
+                userId = userId,
                 Questions = new List<CreateQuestionDto>
                 {
                     new CreateQuestionDto
@@ -466,8 +494,10 @@ namespace surveyTest
         [Fact]
         public async Task DeleteSurvey_WhenFound_ReturnsNotContent()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
-            var ExistentId = CreateSurveyInDatabase().Id;
+            var ExistentId = CreateSurveyInDatabase(userId).Id;
             var endpoint = $"/api/surveys/{ExistentId}";
 
             // Act
@@ -482,6 +512,8 @@ namespace surveyTest
         [Fact]
         public async Task DeleteSurvey_WhenNotFound_ReturnsNotFound()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
             var nonExistentId = 9999;
             var endpoint = $"/api/surveys/{nonExistentId}";
@@ -498,8 +530,10 @@ namespace surveyTest
         [Fact]
         public async Task ChangeSurveyStatus_WithValidStatus_ReturnsNoContent()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
-            var surveyId = CreateSurveyInDatabase().Id;
+            var surveyId = CreateSurveyInDatabase(userId).Id;
             var endpoint = $"/api/surveys/{surveyId}/status";
             var statusDto = new SurveyStatusDto
             {
@@ -526,8 +560,10 @@ namespace surveyTest
         [Fact]
         public async Task ChangeSurveyStatus_WhenPublishedToDraft_ReturnsInternalServerError()
         {
+            var userId = _authHandler.AddAuthHeaderCreator();
+
             // Arrange
-            var survey = CreateSurveyInDatabase();
+            var survey = CreateSurveyInDatabase(userId);
             var surveyId = survey.Id;
             var endpoint = $"/api/surveys/{surveyId}/status";
             

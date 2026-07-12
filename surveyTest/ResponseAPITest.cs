@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Repository.Data;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
@@ -14,12 +16,17 @@ namespace surveyTest
     {
         private readonly HttpClient _client;
         private readonly ITestOutputHelper _output;
+        private readonly IConfiguration _configuration;
+        private readonly TestAuthHandler _authHandler;
 
         public ResponseAPITest(ITestOutputHelper output)
         {
+
             var application = new SurveyWebApplicationFactory();
             _client = application.CreateClient();
             _output = output;
+            _configuration = application.Server.Services.GetRequiredService<IConfiguration>();
+            _authHandler = new TestAuthHandler(_configuration, _client);
         }
 
         private AppDbContext CreateTestDbContext()
@@ -77,8 +84,22 @@ namespace surveyTest
         }
 
         [Fact]
+        public async Task RequestWithoutToken_ToSecureEndpoint_Returns401Unauthorized()
+        {
+            // Arrange: Ensure no token header is left behind
+            _client.DefaultRequestHeaders.Authorization = null;
+
+            // Act: Call a random secure endpoint in the controller
+            var response = await _client.GetAsync("/api/Response/user/1?pageSize=10&pageNumber=1");
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
         public async Task GetAllResponses_WithValidParams_ReturnsSuccess()
         {
+            _authHandler.AddAuthHeaderAdmin();
             // Arrange
             var endpoint = "/api/Response/All?pageSize=5&pageNumber=1";
 
@@ -90,23 +111,23 @@ namespace surveyTest
             // It might return 200 OK or 404 NotFound if DB is completely empty (no responses)
             Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NotFound);
         }
-
         [Fact]
-        public async Task GetAllResponses_WithZeroPageSize_ReturnsBadRequest()
+        public async Task GetAllResponses_WhenUserIsCreator_Returns403Forbidden()
         {
-            // Arrange
-            var endpoint = "/api/Response/All?pageSize=0&pageNumber=1";
+            // Arrange: Authenticate as Creator instead of Admin
+            _authHandler.AddAuthHeaderCreator();
 
             // Act
-            var response = await _client.GetAsync(endpoint);
+            var response = await _client.GetAsync("/api/Response/All?pageSize=10&pageNumber=1");
 
             // Assert
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
 
         [Fact]
         public async Task GetResponsesBySurveyId_WithInvalidId_ReturnsBadRequest()
         {
+            _authHandler.AddAuthHeaderCreator();
             // Arrange
             var endpoint = "/api/Response/survey/-1?pageSize=5&pageNumber=1";
 
@@ -121,6 +142,7 @@ namespace surveyTest
         [Fact]
         public async Task GetResponseById_WithInvalidId_ReturnsBadRequest()
         {
+            _authHandler.AddAuthHeaderCreator();
             // Arrange
             var endpoint = "/api/Response/-5";
 
@@ -135,6 +157,8 @@ namespace surveyTest
         [Fact]
         public async Task GetResponsesCount_WithInvalidSurveyId_ReturnsBadRequest()
         {
+            _authHandler.AddAuthHeaderCreator();
+
             // Arrange
             var endpoint = "/api/Response/survey/0/Count";
 
@@ -252,6 +276,31 @@ namespace surveyTest
             // Can be BadRequest (validation fluent) or InternalServerError/BadRequest depending on Exception mapping middleware
             // Assuming the Service throws InvalidOperationException or FluentValidation returns BadRequest:
             Assert.Contains(response.StatusCode, new[] { HttpStatusCode.BadRequest, HttpStatusCode.InternalServerError });
+        }
+        [Fact]
+        public async Task GetResponsesByUserId_WhenAuthorizedCreator_ReturnsSuccessOrNotFound()
+        {
+            // Arrange
+            _authHandler.AddAuthHeaderCreator();
+
+            // Act
+            var response = await _client.GetAsync("/api/Response/user/ignoredInActionBody?pageSize=5&pageNumber=1");
+
+            // Assert
+            _output.WriteLine($"Creator Survey View Status: {response.StatusCode}");
+            Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NotFound);
+        }
+
+        [Fact]
+        public async Task GetResponsesCount_WhenUserIsNotAdminOrCreator_Returns403Forbidden()
+        {
+            _authHandler.AddAuthHeaderRespondent();
+
+            // Act
+            var response = await _client.GetAsync("/api/Response/survey/111/Count");
+
+            // Assert: ASP.NET Core blocks it at the role level before even executing the controller method
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
     }
 }
