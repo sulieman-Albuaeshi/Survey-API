@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Identity;
 using SurveyBusinessLayer.DTOs;
 namespace SurveyApplication.Validation.User
 {
@@ -24,8 +25,8 @@ namespace SurveyApplication.Validation.User
 
             RuleFor(x => x.Role)
                 .NotEmpty().WithMessage("Role is required.")
-                .Must(role => role == "User" || role == "Admin")
-                .WithMessage("Role must be either 'User' or 'Admin'.");
+                .Must(role => role == "Respondent" || role == "Admin" || role == "Creator" )
+                .WithMessage("Role must be either 'User' or 'Admin' or 'Respondent'.");
         }
     }
 }

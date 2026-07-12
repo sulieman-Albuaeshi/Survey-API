@@ -12,9 +12,6 @@ namespace SurveyApplication.Validation.Survey
             .NotEmpty().WithMessage("Survey title is required.")
             .MaximumLength(200).WithMessage("Survey title cannot exceed 200 characters.");
 
-            RuleFor(s => s.userId)
-                .NotEmpty().WithMessage("User ID is required.");
-
             RuleFor(s => s.Status)
                 .NotEmpty().WithMessage("Survey status is required.")
                 .Must((status => status == "Draft" || status == "Published" || status == "Archived"))
