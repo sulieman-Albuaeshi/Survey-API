@@ -1,12 +1,16 @@
-using Entities;
 namespace SurveyBusinessLayer.Interface;
+
+using Repository.Models;
+using DTOs;
 
 public interface ISurveyService
 {
-    Task<List<Survey>> GetAllSurveysAsync();
-    Task<Survey?> GetSurveyByIdAsync(int surveyId);
-    Task<int> CreateSurveyAsync(Survey survey);
-    Task<int>  UpdateSurveyAsync(Survey survey); 
+    Task<List<SurveyDto>> GetAllSurveysAsync(int pageSize, int pageNumber);
+    Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId, bool isAuthenticated);
+    Task<string?> GetUserIdBySurveyIdAsync(int survceyId);
+    Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto survey);
+    Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto survey);
     Task<bool> DeleteSurveyAsync(int surveyId);
-    Task<(List<Question>, List<Choice>)> GetQuestionsForSurveyAsync(int surveyId);
+    Task<bool> ChangeSurveyStatusAsync(int surveyId, string statusText);
+    public Task<bool?> IsSurveyAnonymous(int surveyId);
 }

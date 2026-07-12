@@ -1,164 +1,167 @@
-using DTOs;
+using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SurveyBusinessLayer.DTOs;
 using SurveyBusinessLayer.Interface;
-using Entities;
-using SurveyApplication.Mapper;
+using System.Security.Claims;
+
 
 namespace SurveyApplication.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/surveys")]
 public class SurveyController : ControllerBase
 {
     private readonly ISurveyService _surveyService;
-    public SurveyController(ISurveyService surveyService)
+    private readonly IValidator<CreateSurveyDto> _createValidator;
+    private readonly IValidator<UpdaatSurveyDto> _updateValidator;
+    public SurveyController(ISurveyService surveyService, IValidator<CreateSurveyDto> CreateValidator, IValidator<UpdaatSurveyDto> UpdateValidator)
     {
         _surveyService = surveyService;
+        _createValidator = CreateValidator;
+        _updateValidator = UpdateValidator;
     }
-    
+
+    [Authorize(Roles = "Admin")]
     [HttpGet("All", Name = "GetAllSurveys")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<SurveyTableDto>>> GetAllSurveys()
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] 
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] 
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<SurveyDto>>> GetAllSurveys(int pageSize, int pageNumber)
     {
-        try
-        {
-            var surveyList = await _surveyService.GetAllSurveysAsync();
+        if(pageSize <= 0 || pageNumber <= 0) return BadRequest("Page size and page number must be greater than zero");
+
+        var surveyList = await _surveyService.GetAllSurveysAsync(pageSize, pageNumber);
             
-            var surveyTableDtos = surveyList.Select(survey => SurveyMapper.ToSurveyTableDtos(survey)).ToList();
-            return Ok(surveyTableDtos);
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        
+        return Ok(surveyList);        
     }
-    
+
+    [AllowAnonymous]
     [HttpGet("{id}", Name = "GetSurveyById")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
     public async Task<ActionResult<SurveyDetailsDto>> GetSurveyByIdAsync(int id)
     {
-        try
-        {
-            var survey = await _surveyService.GetSurveyByIdAsync(id);
-            var (questionList, choiceList) = await _surveyService.GetQuestionsForSurveyAsync(id);
-            var surveyDetailsDto = SurveyMapper.ToSurveyDetailsDto(survey, questionList, choiceList);
-            return Ok(surveyDetailsDto);
+        if(id <= 0) return BadRequest("Invalid Survey ID");
 
-        }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+
+        var survey = await _surveyService.GetSurveyByIdAsync(id, isAuthenticated);
+        return Ok(survey);
     }
-    
+
+    [Authorize(Roles = "Creator")]
     [HttpPost("Create", Name = "CreateSurvey")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDto>> CreateSurvey(SurveyDto surveyDto)
+    public async Task<ActionResult<SurveyDetailsDto>> CreateSurvey(CreateSurveyDto surveyDto)
     {
-        try
+        var validationResult = _createValidator.Validate(surveyDto);
+
+        if (!validationResult.IsValid)
         {
-            var survey = SurveyMapper.ToSurveyEntity(surveyDto);
-            var  surveyId = await _surveyService.CreateSurveyAsync(survey);
-            surveyDto.Id = surveyId;
-            if (surveyId > 0)
-            {
-                return CreatedAtRoute("GetSurveyById", new { id = surveyId }, surveyDto);
-            }
-            return BadRequest("Failed to create survey");
+            // Fail Fast: 400 Bad Request if syntax/structure is wrong
+            return BadRequest(validationResult.ToDictionary());
         }
-        catch (ArgumentException e)
+
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        surveyDto.userId = userId ?? throw new UnauthorizedAccessException("");
+
+        var  survey = await _surveyService.CreateSurveyWithQuestionsAsync(surveyDto);
+        if (survey.Id > 0)
         {
-            return BadRequest(e.Message);
+            return CreatedAtRoute("GetSurveyById", new { id = survey.Id }, survey);
         }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        return BadRequest("Failed to create survey");
+
     }
-    
+
+    [Authorize(Roles = "Creator")]
     [HttpPut("{id}", Name = "UpdateSurvey")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] 
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, SurveyDto dto)
+    public async Task<ActionResult<SurveyDto>> UpdateSurvey(int id, UpdaatSurveyDto dto, [FromServices] IAuthorizationService authorizationService)
     {
-        try
-        {
-            var survey = new Survey
-            {
-                Id = id,
-                Title = dto.Title,
-                Description = dto.Description,
-                IsAnonymous = dto.IsAnonymous,
-                IsActive = dto.IsActive,
-                UserId = dto.UserId,
-                Status = Enum.TryParse<SurveyStatus>(dto.Status, out var status) ? status : SurveyStatus.Draft,
-            };
-        
-            var  numberOfRowEffected  = await _surveyService.UpdateSurveyAsync(survey);
+        if(id <= 0) return BadRequest("Invalid Survey ID");
+        dto.Id = id;
 
-            if (numberOfRowEffected > 0)
-            {
-                var srv = SurveyMapper.ToSurveyDto(survey);
-                return Ok(srv);
-            }
-            return BadRequest("Failed to update survey");
-        }
-        catch (ArgumentException e)
+        var validationResult = _updateValidator.Validate(dto);
+
+        if (!validationResult.IsValid)
         {
-            return BadRequest(e.Message);
+            // Fail Fast: 400 Bad Request if syntax/structure is wrong
+            return BadRequest(validationResult.ToDictionary());
         }
-        catch (KeyNotFoundException e)
-        {
-            return NotFound(e.Message);
-        }
-        catch (InvalidOperationException e)
-        {
-            return Conflict(e.Message);
-        }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+
+
+        var userId = await _surveyService.GetUserIdBySurveyIdAsync(id);
+        dto.userId = userId;
+
+        var authService = await authorizationService.AuthorizeAsync(User, dto.userId, "EditDeleteResuorse");
+
+        if(!authService.Succeeded)
+            return Forbid();
+
+        var survey  = await _surveyService.UpdateSurveyWithQuestionsAsync(dto);
+
+        if (survey == null) return BadRequest("Failed to update survey");
+
+        return Ok(survey);
     }
-    
-    
+
+    [Authorize(Roles = "Creator")]
     [HttpDelete("{id}", Name = "DeleteSurvey")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> DeleteSurvey(int id)
+    public async Task<ActionResult> DeleteSurvey(int id, [FromServices] IAuthorizationService authorizationService)
     {
-        try
-        {
-            var deleted = await _surveyService.DeleteSurveyAsync(id);
-            if (!deleted)
-                return NotFound("Failed to delete survey");
+        if (id <= 0) return BadRequest("Invalid Survey ID");
 
-            return Ok($"Survey with id {id} has been deleted");
-        }
-        catch (ArgumentException e)
-        {
-            return BadRequest(e.Message);
-        }
-        catch(Exception e)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, e.Message);
-        }
+        var userId = await _surveyService.GetUserIdBySurveyIdAsync(id);
+        var AuthService = await authorizationService.AuthorizeAsync(User, userId, "EditDeleteResuorse");
+
+        if(!AuthService.Succeeded)
+            return Forbid();
+
+        var deleted = await _surveyService.DeleteSurveyAsync(id);
+        if (!deleted)
+            return NotFound("Failed to delete survey");
+
+        return Ok($"Survey with id {id} has been deleted");
+
+    }
+
+    [Authorize(Roles = "Creator")]
+    [HttpPatch("{id}/status", Name = "ChangeSurveyStatus")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ChangeSurveyStatus(int id, SurveyStatusDto status, [FromServices] IAuthorizationService authorizationService)
+    {
+        var updated = await _surveyService.ChangeSurveyStatusAsync(id, status.StatusText);
+
+        var userId = await _surveyService.GetUserIdBySurveyIdAsync(id);
+        var authService = await authorizationService.AuthorizeAsync(User, userId, "EditDeleteResuorse");
+
+        if (!authService.Succeeded)
+            return Forbid();
+
+        if (!updated)
+            return NotFound("Failed to update survey status");
+
+        return NoContent();
     }
 }

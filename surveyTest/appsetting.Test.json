@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "TestConnection": "Server=localhost\\SQLEXPRESS;Database=SurveyDB_Test;Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}

@@ -1,101 +1,124 @@
-using DTOs;
-using Entities;
+using Microsoft.EntityFrameworkCore;
+using Repository.Interface;
+using Repository.Models;
+using SurveyBusinessLayer.DTOs;
 using SurveyBusinessLayer.Interface;
-using SurveyDataAccessLayer.Interface;
+using SurveyBusinessLayer.Mapper;
 
 namespace SurveyBusinessLayer;
 
 public class ResponseService : IResponseService
 {
     private readonly IResponseRepository _responseRepository;
-    private readonly IQuestionRepository _questionRepository;
-    public ResponseService(IResponseRepository responseRepository, IQuestionRepository questionRepository)
+    private readonly IUserRepository _userRepository;
+    public ResponseService(IResponseRepository responseRepository, IUserRepository userRepository)
     {
         _responseRepository = responseRepository;
-        _questionRepository = questionRepository;
+        _userRepository = userRepository;
     }
     
-    public Task<List<ResponseDto>> GetAllResponsesDetailsAsync()
+    private static void VerifyBusinessRules(ResponseCreateDto dto, ResponseValidationDataDto? validationData, bool isAuthenticated)
     {
-        return _responseRepository.GetAllResponsesDetailsAsync();
+        // Check if the survey exists and is valid
+        if (validationData?.IsAnonymous == null)
+            throw new KeyNotFoundException($"Survey with ID {dto.SurveyId} not found.");
+
+        // Check if the survey is anonymous and if the userId is provided
+        if (validationData?.IsAnonymous == false && !isAuthenticated)
+            throw new UnauthorizedAccessException("Survey is not anonymous, You nee dto login first");
+
+        ValidateRequiredQuestions(dto, validationData.RequiredQuestionIds);
+        ValidateChoiceIds(dto, validationData.ValidChoiceIds);
+    }
+    private static void ValidateRequiredQuestions(ResponseCreateDto dto, IEnumerable<int> requiredQuestionIds)
+    {
+        var missingRequiredIds = requiredQuestionIds
+            .Where(id => !dto.Answers.Select(a => a.QuestionId)
+            .Contains(id))
+            .Count();
+        if (missingRequiredIds != 0)
+            throw new InvalidOperationException("All required questions must be answered.");
+    }
+    private static void ValidateChoiceIds(ResponseCreateDto dto, IEnumerable<int> validChoiceIds)
+    {
+        var validChoiceSet = validChoiceIds.ToHashSet();
+        var submittedChoiceIds = dto.Answers
+            .SelectMany(a => a.RankedChoices?.Select(s => s.ChoiceId) ?? Enumerable.Empty<int>())
+            .ToHashSet();
+
+        if (!submittedChoiceIds.All(id => validChoiceSet.Contains(id)))
+            throw new InvalidOperationException("One or more selected choices are invalid.");
     }
 
-    public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId)
+    public async Task<List<ResponseDto>> GetAllResponsesDetailsAsync(int pageSize, int pageNumber)
     {
-        if (surveyId == 0)
-            throw new ArgumentException("Survey ID must be a non-zero value.", nameof(surveyId));
+        if (pageSize <= 0 || pageNumber <= 0)
+            throw new ArgumentException("Page size and page number must be greater than zero.");
+
+        var response = await _responseRepository.GetAllResponsesDetailsAsync(pageSize, pageNumber);
         
-        var responses = await _responseRepository.GetResponsesBySurveyIdAsync(surveyId);
-        
-        if(responses.Count == 0)
-            throw new KeyNotFoundException($"No responses found for survey ID {surveyId}.");
-        
-        return responses;
+        var responseDtos = response.Select(r => r.ToDto()).ToList();
+
+        return responseDtos;
+    }
+
+    public async Task<List<ResponseDto>> GetResponsesBySurveyIdAsync(int surveyId, int pageSize, int pageNumber)
+    {
+        if (surveyId <= 0)
+            throw new ArgumentException("Survey ID must be a positive integer.", nameof(surveyId));
+
+        var responses = await _responseRepository.GetResponsesBySurveyIdAsync(surveyId, pageSize, pageNumber);
+
+        var responseDtos = responses.Select(r => r.ToDto()).ToList();
+
+        return responseDtos;
     }
     
-    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(string userId)
+    public async Task<List<ResponseDto>> GetResponsesByUserIdAsync(Guid userId, int pageSize, int pageNumber)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-            throw new ArgumentException("User ID must be a non-empty value.", nameof(userId));
-        
-        int userid = int.Parse(userId);
-        if(userid <= 0)
-            throw new ArgumentException("user ID not found", nameof(userId));
-        
-        var responses = await _responseRepository.GetResponsesByUserIdAsync(userId);
+        if(await _userRepository.IsUserExist(userId))
+            throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+        var responses = await _responseRepository.GetResponsesByUserIdAsync(userId, pageSize, pageNumber);
         
         if(responses.Count == 0)
-            throw new KeyNotFoundException($"No responses found for user ID {userId}.");
-        
-        return responses;
+            throw new InvalidOperationException($"No responses found for user ID {userId}.");
+
+        var responseDtos = responses.Select(r => r.ToDto()).ToList();
+
+        return responseDtos;
+
     }
-    
-    public async Task<ResponseDto> GetResponseByIdAsync(int responseId)
+    public async Task<ResponseDto> GetResponseByIdAsync(int responseId, Guid userId)
     {
         if (responseId <= 0)
             throw new ArgumentException("Response ID must be a positive integer.", nameof(responseId));
         
-        var response = await _responseRepository.GetResponseByIdAsync(responseId);
+        var response = await _responseRepository.GetResponseByIdAsync(responseId, userId);
         
         if(response == null)
             throw new KeyNotFoundException($"No response found with ID {responseId}.");
-        
-        return response;
+
+        return response.ToDto();
     }
     
-    public async Task<ResponseCreateDto> CreateResponseAsync(ResponseCreateDto responseCreateDto)
+    public async Task<ResponseDetailsDto> SubmitResponseAsync(ResponseCreateDto dto, bool isAuthenticated)
     {
-        if (responseCreateDto == null)
-            throw new ArgumentNullException(nameof(responseCreateDto), "Response data cannot be null.");
+        var validationData = await _responseRepository.GetValidationDataForSurveyAsync(dto.SurveyId);
 
-        var questions = _questionRepository.GetAllQuestionsAsync(responseCreateDto.SurveyId);
-        var questionIds = questions.Result
-            .Where(q => q.IsRequired)
-            .Select(q => q.Id)
-            .ToHashSet();
-        
-        var sentIds = responseCreateDto.Answers.Select(a => a.QuestionId).ToHashSet();
-        
-        if( sentIds.Count > questionIds.Count)  
-            throw new ArgumentException("Too many answers provided. Please try again.");
-        
-        var missingRequired = questionIds.Except(sentIds).ToList();
-        if (missingRequired.Any())
-            throw new ArgumentException($"Missing answers for required questions: {string.Join(", ", missingRequired)}");
-        
-        return await _responseRepository.CreateResponseAsync(responseCreateDto);
-    } 
+        VerifyBusinessRules(dto, validationData, isAuthenticated);
 
-    public async Task<int> GetResponsesCountAsync()
-    {
-        throw new NotImplementedException();
+        var response = dto.ToDominEntity();
+
+        var createdResponse = await _responseRepository.SubmitResponseAsync(response);
+
+        return createdResponse.ToDetailsDto();
     }
 
-    public async Task<int> DeleteResponsesAsync(int surveyId)
+    public async Task<int> GetResponsesCountAsync(int surveyId)
     {
-        if (surveyId <= 0)
-            throw new ArgumentException("Survey ID must be a positive integer.", nameof(surveyId));
-        
-        return await _responseRepository.DeleteResponseAsync(surveyId);
+        var count = await _responseRepository.GetResponsesCountAsync(surveyId);
+        if(count == 0) throw new InvalidOperationException("No responses found for the specified survey.");
+            return count;
     }
 }
