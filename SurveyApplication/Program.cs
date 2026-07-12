@@ -1,15 +1,17 @@
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Repository;
 using Repository.Data;
 using Repository.Interface;
-using Repository;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using SurveyBusinessLayer.Interface;
-using SurveyBusinessLayer;
-using FluentValidation;
+using SurveyApplication.Authorization;
 using SurveyApplication.Validation.Survey;
+using SurveyBusinessLayer;
+using SurveyBusinessLayer.Interface;
 using System.Text;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,8 @@ var builder = WebApplication.CreateBuilder(args);
 // For FluentValidation one is fine the ASP.net will scan the assembly and find all validators 
 builder.Services.AddValidatorsFromAssemblyContaining<SurveyCreaterDtoValidation>();
 builder.Services.AddValidatorsFromAssemblyContaining<SurveyUpdateDtoValidation>();
+
+builder.Services.AddSingleton<IAuthorizationHandler, EditDeleteResuorseHandler>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -132,6 +136,12 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("EditDeleteResuorse", policy =>
+        policy.Requirements.Add(new EditDeleteResuorseRequirement()));
 });
 
 var app = builder.Build();
