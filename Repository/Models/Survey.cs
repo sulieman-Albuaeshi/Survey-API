@@ -23,8 +23,6 @@ public partial class Survey
 
     public SurveyStatus Status { get; set; }
 
-    public int QuestionCount { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();

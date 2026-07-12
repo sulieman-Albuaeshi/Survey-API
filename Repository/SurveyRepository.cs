@@ -48,8 +48,6 @@ namespace Repository
                     choice.OrderIndex = choiceIndex;
                 }
             }
-            newSurvey.QuestionCount = newSurvey.Questions.Count;
-
             try
             {
                 await _context.AddAsync(newSurvey);
@@ -101,7 +99,6 @@ namespace Repository
                 existingSurvey.Description = Updatedsurvey.Description;
                 existingSurvey.IsAnonymous = Updatedsurvey.IsAnonymous;
                 existingSurvey.Status = Updatedsurvey.Status;
-                existingSurvey.QuestionCount = Updatedsurvey.Questions.Count;
 
                 int QuestionInsex = 0;
                 foreach (var question in Updatedsurvey.Questions)

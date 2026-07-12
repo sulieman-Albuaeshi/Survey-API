@@ -82,7 +82,6 @@ public class SurveyServiceTests
         Assert.True(savedSurvey.IsAnonymous);
         Assert.Equal(SurveyStatus.Draft, savedSurvey.Status);
         Assert.Equal("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b", savedSurvey.UserId.ToString());
-        Assert.Equal(1, savedSurvey.QuestionCount); 
 
         // 2. Question Level Assertions
         Assert.Single(savedSurvey.Questions); 
@@ -147,7 +146,6 @@ public class SurveyServiceTests
             .FirstOrDefaultAsync(s => s.Id == result.Id);
         Assert.NotNull(savedSurvey);
         Assert.Equal("Nested Test Survey", savedSurvey.Title);
-        Assert.Equal(1, savedSurvey.QuestionCount);
         var question = savedSurvey.Questions.First();
         Assert.Equal("What is your favorite color?", question.QuestionText);
         Assert.Equal(3, question.Choices.Count);
@@ -298,7 +296,6 @@ public class SurveyServiceTests
                 IsAnonymous = false,
                 Status = SurveyStatus.Draft,
                 UserId = new Guid("7b0e14a2-9c3f-42a1-b8d6-5f8e02c1439b"),
-                QuestionCount = 1,
                 Questions = new List<Question>
             {
                 new Question
@@ -388,7 +385,6 @@ public class SurveyServiceTests
         // 1. Root Survey Asserts
         Assert.NotNull(dbRecord);
         Assert.Equal("Updated Survey Title", dbRecord.Title);
-        Assert.Equal(2, dbRecord.QuestionCount); // 👈 Verify counter tracked both questions
 
         // 2. Question Graph Structure Asserts
         Assert.Equal(2, dbRecord.Questions.Count); // Should have exactly 2 questions total

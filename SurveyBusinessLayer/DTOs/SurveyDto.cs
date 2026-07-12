@@ -15,7 +15,6 @@ public class SurveyDto
     public required string  Title { get; set; }
     public string? Description { get; set; }
     public bool IsAnonymous { get; set; }
-    public int QuestionCount { get; set; }
     public string Status { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
 
@@ -48,7 +47,6 @@ public class SurveyDetailsDto
     public required string Title { get; set; }
     public string? Description { get; set; }
     public bool IsAnonymous { get; set; }
-    public int QuestionCount { get; set; }
     public string Status { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
     public List<QuestionDetailsDto> Questions { get; set; } = new List<QuestionDetailsDto>();
