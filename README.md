@@ -7,7 +7,7 @@ A robust RESTful API for managing surveys, built with **C#** and **ASP.NET Core*
 The solution (`SurveyApplication.sln`) is divided into four main projects:
 
 *   **`Entities`**: The Domain layer. Contains all the classes and core business models that represent the database tables.
-*   **`SurveyDataAccessLayer`**: The Data Access Layer (DAL). Built using **ADO.NET**. This layer handles all direct database interactions, connection management (`SqlConnection`), execution of raw SQL queries/stored procedures (`SqlCommand`).
+*   **`SurveyDataAccessLayer`**: The Data Access Layer (DAL). Built using **Entity Framework Core**. This layer handles all direct database interactions, managing the database context (`DbContext`), and executing LINQ queries to perform CRUD operations smoothly against the database entities.
 *   **`SurveyBusinessLayer`**: The Business Logic Layer (BLL). Contains the Service classes. It acts as the "brain" of the application, validating business rules before communicating with the Data Access Layer.
 *   **`SurveyApplication`**: The Presentation layer (Web API). Contains the REST API Controllers that receive HTTP requests, pass data to the Business Layer, and return HTTP responses.
 
@@ -16,6 +16,8 @@ The solution (`SurveyApplication.sln`) is divided into four main projects:
 *   **Language:** C#
 *   **Framework:** .NET 8 (ASP.NET Core Web API)
 *   **Data Access:** ADO.NET
+*   **Authentication & Security:** JWT (JSON Web Tokens) Authentication
+*   **Validation:** FluentValidation (for strong, fluent request validation)
 *   **Architecture:** N-Tier, Controller-Service-Repository Pattern
 
 ## ⚙️ Prerequisites
