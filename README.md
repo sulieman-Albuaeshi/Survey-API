@@ -36,11 +36,18 @@ cd Survey-API
 ```
 
 ### 2. Configure the Database
-1. Create a new database in your SQL Server.
-2. Execute the necessary SQL scripts (e.g., `schema.sql` or table creation scripts) directly in your database manager (like SQL Server Management Studio) to set up the tables required for the surveys. *(Note: Add the location of your SQL scripts here if you have them in the repo).*
-3. Navigate to the `SurveyDataAccessLayer` folder.
-4. Open `Dbhealper.cs` file
-5. Update the `ConnectionStrings` method with your local ADO.NET database connection string.
+This project includes a SQL Server database backup file. Follow these quick steps to restore it:
+
+### Prerequisites
+* **SQL Server** and **SQL Server Management Studio (SSMS)** installed.
+
+### Quick Steps (SSMS)
+
+1. **Move the File:** Copy the `.bak` file into your SQL Server's default backup directory to prevent permission errors:
+   * `C:\Program Files\Microsoft SQL Server\MSSQLXX.MSSQLSERVER\MSSQL\Backup\`
+2. **Open Restore Wizard:** Open SSMS, right-click **Databases** in the Object Explorer, and select **Restore Database...**
+3. **Select Source:** Choose **Device**, click the `...` button, click **Add**, and select your `.bak` file.
+4. **Finish:** Click **OK** to run the restoration. Refresh your database folder to see it.
 
 ### 3. Restore Dependencies
 Open your terminal in the root directory and run:
