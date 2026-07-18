@@ -114,9 +114,17 @@ namespace SurveyBusinessLayer
         
         }
 
-        public async Task Logout(Guid userId)
+        public async Task<bool?> Logout(Guid userId, string refreshToken)
         {
-            await _userRepository.RevokeRefreshTokenAsync(userId);
+            var user = await _userRepository.GetUserByIdAsync(userId);
+
+            var isValidRefreshToken = MyUtility.verifyPassword(refreshToken, user?.RefreshTokenHash?? "");
+
+            if (!isValidRefreshToken)
+                return false; // If the refresh token is invalid, we don't revoke it, just return.
+
+            return await _userRepository.RevokeRefreshTokenAsync(userId);
+            
         }
     }
 }

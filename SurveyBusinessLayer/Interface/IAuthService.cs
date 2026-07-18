@@ -7,6 +7,6 @@ namespace SurveyBusinessLayer.Interface
     {
         public Task<RefreshTokenDto?> Login(UserLoginDto userLoginDto);
         public Task<RefreshTokenDto?> RefreshToken(RefreshTokenRequestDto request);
-        public Task Logout(Guid userId);
+        public Task<bool?> Logout(Guid userId, string refreshToken);
     }
 }

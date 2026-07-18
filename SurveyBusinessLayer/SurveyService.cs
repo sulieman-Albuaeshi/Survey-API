@@ -26,17 +26,29 @@ public class SurveyService : ISurveyService
         return dto;
     }
     
-    public async Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId, bool isAuthenticated)
+    public async Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId, string userAuthId, string? userRole)
     {
         var survey = await _surveyRepository.GetSurveyByIdAsync(surveyId);
 
         if (survey == null)
             throw new KeyNotFoundException("Survey not found.");
 
-        if (!isAuthenticated && !survey.IsAnonymous)
-            throw new UnauthorizedAccessException("You must be Login to access this survey.");
-
-        return survey.ToDetailsDto();
+        switch(userRole)
+        {
+            case "Admin":
+                return survey.ToDetailsDto();
+            case "Creator":
+                if (survey.UserId != Guid.Parse(userAuthId))
+                    throw new UnauthorizedAccessException("You are not authorized to access this survey.");
+                return survey.ToDetailsDto();
+            case "Respondent":
+                return survey.ToDetailsDto();
+            default:
+                if (survey.IsAnonymous)
+                    return survey.ToDetailsDto();
+                else
+                    throw new UnauthorizedAccessException("You are not authorized to access this survey.");
+        }
     }
 
     public async Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto dto)

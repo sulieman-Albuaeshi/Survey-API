@@ -51,9 +51,10 @@ public class SurveyController : ControllerBase
     {
         if(id <= 0) return BadRequest("Invalid Survey ID");
 
-        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+        var userAuthId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        var survey = await _surveyService.GetSurveyByIdAsync(id, isAuthenticated);
+        var survey = await _surveyService.GetSurveyByIdAsync(id, userAuthId, userRole);
         return Ok(survey);
     }
 

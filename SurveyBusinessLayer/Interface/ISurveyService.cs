@@ -6,7 +6,7 @@ using DTOs;
 public interface ISurveyService
 {
     Task<List<SurveyDto>> GetAllSurveysAsync(int pageSize, int pageNumber);
-    Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId, bool isAuthenticated);
+    Task<SurveyDetailsDto?> GetSurveyByIdAsync(int surveyId, string userAuthId, string? userRole);
     Task<string?> GetUserIdBySurveyIdAsync(int survceyId);
     Task<SurveyDetailsDto> CreateSurveyWithQuestionsAsync(CreateSurveyDto survey);
     Task<SurveyDetailsDto> UpdateSurveyWithQuestionsAsync(UpdaatSurveyDto survey);

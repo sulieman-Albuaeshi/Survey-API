@@ -71,16 +71,19 @@ namespace StudentApi.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(RefreshTokenRequestDto refreshTokenRequestDto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new { error = "Invalid token" });
-            }
-
-            await _authService.Logout(userId);
+            var emailClaim = User.FindFirst(ClaimTypes.Email);
+            if(emailClaim == null || emailClaim.Value != refreshTokenRequestDto.Email)
+                return Ok(); // returning 200 OK even if the email doesn't match, to avoid revealing information about the user's session
             
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+               return Ok(); 
+               
+             var logoutSuccessful = await _authService.Logout(userId, refreshTokenRequestDto.RefreshToken);
+            if (logoutSuccessful == null || logoutSuccessful == false)
+                return Ok();    
             return Ok(new { message = "Logged out successfully" });
         }
     }

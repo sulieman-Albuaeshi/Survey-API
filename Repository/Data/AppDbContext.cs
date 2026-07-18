@@ -124,9 +124,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
 
-
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.RefreshTokenHash).HasMaxLength(500);
+            entity.Property(e => e.RefreshTokenExpiryTime);
+            entity.Property(e => e.RefreshTokenRevokedAt);
         });
 
         OnModelCreatingPartial(modelBuilder);
