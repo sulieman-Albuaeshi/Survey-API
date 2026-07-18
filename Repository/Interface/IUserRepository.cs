@@ -14,5 +14,7 @@ public interface IUserRepository
     Task<bool> IsUserExist(Guid userId);
     Task<bool> IsEmailUniqueAsync(string email);
     Task<User?> GetUserByEmailAndPasswordAsync(string email, string passwordHash);
-    Task<User?> GetUserByEmailAsync(string email);  
+    Task<User?> GetUserByEmailAsync(string email);
+    Task<bool> UpdateRefreshTokenAsync(Guid userId, string refreshToken, DateTime expiryTime);
+    Task<bool> RevokeRefreshTokenAsync(Guid userId);
 }

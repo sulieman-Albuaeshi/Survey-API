@@ -47,13 +47,13 @@ namespace SurveyBusinessLayer.Mapper
                 Id = dto.Id,
                 Title = dto.Title,
                 Description = dto.Description,
-                IsAnonymous = dto.IsAnonymous,
+                IsAnonymous = dto.IsAnonymous ?? false,
                 Status = Enum.TryParse<SurveyStatus>(dto.Status, out var status) ? status : SurveyStatus.Draft,
                 Questions = dto.Questions.Select(q => new Question
                 {
                     Id = q.Id,
                     QuestionText = q.QuestionText,
-                    IsRequired = q.IsRequired,
+                    IsRequired = q.IsRequired ?? false,
                     QuestionTypeEnum = Enum.Parse<enQuestionType>(q.QuestionType),
                     Choices = q.Choices.Select(c => new Choice
                     {

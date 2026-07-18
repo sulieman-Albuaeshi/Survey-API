@@ -5,7 +5,8 @@ namespace SurveyBusinessLayer.Interface
 {
     public interface IAuthService
     {
-        public Task<string?> Login(UserLoginDto userLoginDto);
-        //public Task Logout(string userId);
+        public Task<RefreshTokenDto?> Login(UserLoginDto userLoginDto);
+        public Task<RefreshTokenDto?> RefreshToken(RefreshTokenRequestDto request);
+        public Task Logout(Guid userId);
     }
 }

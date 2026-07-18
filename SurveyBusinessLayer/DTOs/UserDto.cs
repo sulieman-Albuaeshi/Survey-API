@@ -1,4 +1,4 @@
-using System;
+ using System;
 
 namespace SurveyBusinessLayer.DTOs;
 
@@ -46,4 +46,16 @@ public class UserLoginDto
 {
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
+}
+
+public class RefreshTokenDto
+{
+    public string AccessToken { get; set; } = null!;
+    public string RefreshToken { get; set; } = null!;
+}
+
+public class RefreshTokenRequestDto
+{
+    public string RefreshToken { get; set; } = null!;
+    public string Email { get; set; } = null!;
 }

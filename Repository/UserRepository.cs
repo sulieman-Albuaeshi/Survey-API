@@ -66,5 +66,30 @@ namespace Repository
         {
             return await _context.User.AnyAsync(u => u.Id == userId);
         }
+        public async Task<bool> UpdateRefreshTokenAsync(Guid userId, string refreshTokenHash, DateTime expiryTime)
+        {
+            var user = await _context.User.FindAsync(userId);
+            if (user == null)
+                return false;
+
+            user.RefreshTokenHash = refreshTokenHash;
+            user.RefreshTokenExpiryTime = expiryTime;
+            user.RefreshTokenRevokedAt = null;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RevokeRefreshTokenAsync(Guid userId)
+        {
+            var user = await _context.User.FindAsync(userId);
+            if (user == null)
+                return false;
+
+            user.RefreshTokenHash = string.Empty;
+            user.RefreshTokenExpiryTime = null;
+            user.RefreshTokenRevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
