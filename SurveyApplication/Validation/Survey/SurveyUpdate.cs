@@ -22,7 +22,7 @@ namespace SurveyApplication.Validation.Survey
                 .Must(id => id > 0).WithMessage("Invalid Survey ID.");
 
             RuleFor(q => q.Questions)
-                .Must(questions => questions.Count >= 1).WithMessage("Survey must contain at least one question.")
+                .Must(questions => questions.Count >= 1).WithMessage("Survey must contain at least one question.");
 
         }
     }
@@ -47,7 +47,7 @@ namespace SurveyApplication.Validation.Survey
                           {
                               RuleForEach(q => q.Choices)
                               .Must(choice => choice.Id > 0).WithMessage("Invalid Choice ID");
-                          };                   
+                          });                   
 
                       });
         }

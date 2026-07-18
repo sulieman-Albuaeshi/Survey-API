@@ -194,7 +194,7 @@ app.UseExceptionHandler(exceptionApp =>
         else if (originalError is Exception)
         {
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            await context.Response.WriteAsJsonAsync(new { error = originalError.Message });
+            await context.Response.WriteAsJsonAsync(new { error = originalError.Message, details = exceptionFeature?.Error?.InnerException?.Message });
         }
         else
         {

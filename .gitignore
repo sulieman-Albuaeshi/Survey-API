@@ -12,3 +12,4 @@
 *.suo
 
 DbHelper.local.cs
+.vscode
