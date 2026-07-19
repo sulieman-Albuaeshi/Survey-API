@@ -59,3 +59,8 @@ public class RefreshTokenRequestDto
     public string RefreshToken { get; set; } = null!;
     public string Email { get; set; } = null!;
 }
+
+public class RefreshTokenResponseDto
+{
+    public string RefreshToken { get; set; } = null!;
+}

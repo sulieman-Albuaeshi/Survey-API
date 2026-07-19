@@ -68,7 +68,8 @@ namespace SurveyBusinessLayer
             if (!isValidPassword)
                 throw new UnauthorizedAccessException("Invalid credentials");
 
-            var refreshTokenHash = MyUtility.hashPassword(GenerateRefreshToken());
+            var refreshToken = GenerateRefreshToken();
+            var refreshTokenHash = MyUtility.hashPassword(refreshToken);
             var refreshTokenExpiryDays = Convert.ToInt32(_configuration["JwtSettings:RefreshTokenExpiryDays"]);
             var expiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryDays);
 
@@ -79,7 +80,7 @@ namespace SurveyBusinessLayer
             return new RefreshTokenDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshTokenHash
+                RefreshToken = refreshToken
             };
         }
 

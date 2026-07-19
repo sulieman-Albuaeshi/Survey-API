@@ -43,7 +43,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Response).WithMany(p => p.Answers)
                 .HasForeignKey(d => d.ResponseId)
-                .HasConstraintName("FK_Answers_Responses");
+                .HasConstraintName("FK_Answers_Responses")
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<AnswerSelection>(entity =>
@@ -55,7 +56,8 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Choice).WithMany(p => p.AnswerSelections)
                 .HasForeignKey(d => d.ChoiceId)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_AnswerSelections_Choices");
+                .HasConstraintName("FK_AnswerSelections_Choices")
+                .OnDelete(DeleteBehavior.ClientCascade);
         });
 
         modelBuilder.Entity<Choice>(entity =>

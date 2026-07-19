@@ -50,7 +50,7 @@ namespace StudentApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
+        public async Task<ActionResult<RefreshTokenDto?>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
             if(string.IsNullOrEmpty(request.RefreshToken))
                 return BadRequest(new { error = "Refresh token is required" });
@@ -59,10 +59,10 @@ namespace StudentApi.Controllers
                 return BadRequest(new { error = "Email is required" });
             
             var newAccessToken = await _authService.RefreshToken(request);
-            
-            return Ok(new
+
+            return Ok(new RefreshTokenResponseDto
             {
-                accessToken = newAccessToken,
+                RefreshToken = newAccessToken?.RefreshToken,
             });
         
         }
