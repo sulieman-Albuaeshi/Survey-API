@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 using Repository.Data;
 using Repository.Models;
 using SurveyBusinessLayer.DTOs;
@@ -11,14 +9,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using SurveyBusinessLayer.utility;
-using SurveyBusinessLayer;
-
 using System.Security.Cryptography;
-using System.Text;
 using Xunit.Abstractions;
-using Repository.Interface;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
 
 namespace surveyTest
 {
