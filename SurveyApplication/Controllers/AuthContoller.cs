@@ -18,13 +18,17 @@ namespace StudentApi.Controllers
     public class AuthController : ControllerBase
     {
         readonly private IAuthService _authService;
+        readonly private ILogger<AuthController> _logger;
         readonly private IValidator<UserLoginDto> _loginValidator;
         public AuthController(
             IAuthService authService, 
-            IValidator<UserLoginDto> loginValidator)
+            IValidator<UserLoginDto> loginValidator,
+            ILogger<AuthController> logger
+            )
         {
             _authService = authService;
             _loginValidator = loginValidator;
+            _logger = logger;
         }
 
         [HttpPost("login")]
@@ -39,6 +43,8 @@ namespace StudentApi.Controllers
 
             if(!validationResult.IsValid)
             {
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                _logger.LogWarning($"Login attempt failed with Email: {request.Email}, IP: {ip}");
                 return BadRequest(validationResult.ToDictionary());
             }
 
@@ -60,10 +66,18 @@ namespace StudentApi.Controllers
         public async Task<ActionResult<RefreshTokenDto?>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
             if(string.IsNullOrEmpty(request.RefreshToken))
+            {
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                _logger.LogWarning($"Login attempt failed with Email: {request.Email}, IP: {ip}");
                 return BadRequest(new { error = "Refresh token is required" });
-            
+            }
+
             if(string.IsNullOrEmpty(request.Email))
+            {
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                _logger.LogWarning($"Login attempt failed with Email: {request.Email}, IP: {ip}");
                 return BadRequest(new { error = "Email is required" });
+            }
             
             var newAccessToken = await _authService.RefreshToken(request);
 
