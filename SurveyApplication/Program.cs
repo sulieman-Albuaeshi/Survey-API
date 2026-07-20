@@ -12,6 +12,8 @@ using SurveyApplication.Validation.Survey;
 using SurveyBusinessLayer;
 using SurveyBusinessLayer.Interface;
 using System.Text;
+using System.Threading.RateLimiting;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,44 @@ builder.Services.AddValidatorsFromAssemblyContaining<SurveyCreaterDtoValidation>
 builder.Services.AddValidatorsFromAssemblyContaining<SurveyUpdateDtoValidation>();
 
 builder.Services.AddSingleton<IAuthorizationHandler, EditDeleteResuorseHandler>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("AuthLimiter", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ip,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("ResponseLimiter", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ip,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -210,6 +250,8 @@ app.UseExceptionHandler(exceptionApp =>
 // APPLAY CORS POLICY AND HTTPS 
 app.UseHttpsRedirection();
 app.UseCors("UserApiCorsPolicy");
+
+app.UseRateLimiter();
 
 app.UseAuthorization();
 

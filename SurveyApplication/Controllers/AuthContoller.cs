@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+
 
 
 namespace StudentApi.Controllers
@@ -26,9 +28,11 @@ namespace StudentApi.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Login([FromBody] UserLoginDto request)
         {
             var validationResult = _loginValidator.Validate(request);
@@ -47,9 +51,12 @@ namespace StudentApi.Controllers
         }
 
         [HttpPost("refresh-token")]
+        [EnableRateLimiting("AuthLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+
         public async Task<ActionResult<RefreshTokenDto?>> RefreshToken([FromBody] RefreshTokenRequestDto request)
         {
             if(string.IsNullOrEmpty(request.RefreshToken))

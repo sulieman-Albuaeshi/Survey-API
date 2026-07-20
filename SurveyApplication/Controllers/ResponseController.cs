@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Repository.Models;
 using SurveyBusinessLayer;
 using SurveyBusinessLayer.DTOs;
@@ -124,6 +125,7 @@ public class ResponseController : ControllerBase
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("ResponseLimiter")]
     [HttpPost("survey/{surveyId}", Name = "CreateResponse")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -131,6 +133,7 @@ public class ResponseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult> SubmitResponse([FromBody] ResponseCreateDto responseCreateDto)
     { 
         var validationResult = _createResponseValidator.Validate(responseCreateDto);
